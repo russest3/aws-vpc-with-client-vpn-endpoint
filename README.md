@@ -1,6 +1,8 @@
 # aws-vpc-with-client-vpn-endpoint
 Build out an AWS VPC with Client VPN Endpoint using Cloud Development Kit!
 
+![](images/aws-vpc-with-client-vpn-endpoint.png)
+
 ## Requirements
 
 - AWS CDK installed
