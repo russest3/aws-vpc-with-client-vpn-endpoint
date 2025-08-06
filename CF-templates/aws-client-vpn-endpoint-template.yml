@@ -1,0 +1,472 @@
+Resources:
+  ClientVpnVpc98F6C741:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.192.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/Resource
+  ClientVpnVpcPrivateSubnet1Subnet4597E0CA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.192.0.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Private
+        - Key: aws-cdk:subnet-type
+          Value: Private
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc/PrivateSubnet1
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PrivateSubnet1/Subnet
+  ClientVpnVpcPrivateSubnet1RouteTable973B90E6:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc/PrivateSubnet1
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PrivateSubnet1/RouteTable
+  ClientVpnVpcPrivateSubnet1RouteTableAssociation2ADF4D4C:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref ClientVpnVpcPrivateSubnet1RouteTable973B90E6
+      SubnetId: !Ref ClientVpnVpcPrivateSubnet1Subnet4597E0CA
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PrivateSubnet1/RouteTableAssociation
+  ClientVpnVpcPrivateSubnet2Subnet6D5FF941:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.192.1.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Private
+        - Key: aws-cdk:subnet-type
+          Value: Private
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc/PrivateSubnet2
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PrivateSubnet2/Subnet
+  ClientVpnVpcPrivateSubnet2RouteTableE9F4534F:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc/PrivateSubnet2
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PrivateSubnet2/RouteTable
+  ClientVpnVpcPrivateSubnet2RouteTableAssociation6E61D96B:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref ClientVpnVpcPrivateSubnet2RouteTableE9F4534F
+      SubnetId: !Ref ClientVpnVpcPrivateSubnet2Subnet6D5FF941
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PrivateSubnet2/RouteTableAssociation
+  ClientVpnVpcPublicSubnet1SubnetC3CA20BA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.192.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Public
+        - Key: aws-cdk:subnet-type
+          Value: Public
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc/PublicSubnet1
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PublicSubnet1/Subnet
+  ClientVpnVpcPublicSubnet1RouteTable917E3414:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc/PublicSubnet1
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PublicSubnet1/RouteTable
+  ClientVpnVpcPublicSubnet1RouteTableAssociationEF21BC72:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref ClientVpnVpcPublicSubnet1RouteTable917E3414
+      SubnetId: !Ref ClientVpnVpcPublicSubnet1SubnetC3CA20BA
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PublicSubnet1/RouteTableAssociation
+  ClientVpnVpcPublicSubnet1DefaultRoute621FC482:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref ClientVpnVpcIGW51147649
+      RouteTableId: !Ref ClientVpnVpcPublicSubnet1RouteTable917E3414
+    DependsOn:
+      - ClientVpnVpcVPCGWBDF3BEFC
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PublicSubnet1/DefaultRoute
+  ClientVpnVpcPublicSubnet2Subnet32428724:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.192.3.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Public
+        - Key: aws-cdk:subnet-type
+          Value: Public
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc/PublicSubnet2
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PublicSubnet2/Subnet
+  ClientVpnVpcPublicSubnet2RouteTableDC098F09:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc/PublicSubnet2
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PublicSubnet2/RouteTable
+  ClientVpnVpcPublicSubnet2RouteTableAssociationE60E3206:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref ClientVpnVpcPublicSubnet2RouteTableDC098F09
+      SubnetId: !Ref ClientVpnVpcPublicSubnet2Subnet32428724
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PublicSubnet2/RouteTableAssociation
+  ClientVpnVpcPublicSubnet2DefaultRoute4D29E0D1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref ClientVpnVpcIGW51147649
+      RouteTableId: !Ref ClientVpnVpcPublicSubnet2RouteTableDC098F09
+    DependsOn:
+      - ClientVpnVpcVPCGWBDF3BEFC
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/PublicSubnet2/DefaultRoute
+  ClientVpnVpcIGW51147649:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: ClientVPNStack/ClientVpnVpc
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/IGW
+  ClientVpnVpcVPCGWBDF3BEFC:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref ClientVpnVpcIGW51147649
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/VPCGW
+  ClientVpnVpcRestrictDefaultSecurityGroupCustomResourceC4279F71:
+    Type: Custom::VpcRestrictDefaultSG
+    Properties:
+      ServiceToken: !GetAtt CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E.Arn
+      DefaultSecurityGroupId: !GetAtt ClientVpnVpc98F6C741.DefaultSecurityGroup
+      Account: !Ref AWS::AccountId
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnVpc/RestrictDefaultSecurityGroupCustomResource/Default
+  CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: Inline
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:AuthorizeSecurityGroupEgress
+                  - ec2:RevokeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupEgress
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':ec2:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':security-group/'
+                      - !GetAtt ClientVpnVpc98F6C741.DefaultSecurityGroup
+    Metadata:
+      aws:cdk:path: ClientVPNStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Role
+  CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Sub cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}
+        S3Key: 7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: __entrypoint__.handler
+      Role: !GetAtt CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0.Arn
+      Runtime: nodejs22.x
+      Description: Lambda function for removing all inbound/outbound rules from the VPC default security group
+    DependsOn:
+      - CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0
+    Metadata:
+      aws:cdk:path: ClientVPNStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Handler
+      aws:asset:path: asset.7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200
+      aws:asset:property: Code
+  BackendSecurityGroup96CF32F1:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow VPN traffic
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow SSH access from anywhere
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      VpcId: !Ref ClientVpnVpc98F6C741
+    Metadata:
+      aws:cdk:path: ClientVPNStack/BackendSecurityGroup/Resource
+  BackendServerInstanceRole79769A0E:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: '2012-10-17'
+      Tags:
+        - Key: Name
+          Value: ClientVPNStack/BackendServer
+    Metadata:
+      aws:cdk:path: ClientVPNStack/BackendServer/InstanceRole/Resource
+  BackendServerInstanceProfileCDAE7A93:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref BackendServerInstanceRole79769A0E
+    Metadata:
+      aws:cdk:path: ClientVPNStack/BackendServer/InstanceProfile
+  BackendServer46688B6C641a0cee2d30d2eb:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      IamInstanceProfile: !Ref BackendServerInstanceProfileCDAE7A93
+      ImageId: !Ref SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amikernel510hvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter
+      InstanceType: t3.micro
+      KeyName: MyKeyPair
+      SecurityGroupIds:
+        - !GetAtt BackendSecurityGroup96CF32F1.GroupId
+      SubnetId: !Ref ClientVpnVpcPrivateSubnet1Subnet4597E0CA
+      Tags:
+        - Key: Name
+          Value: ClientVPNStack/BackendServer
+      UserData: !Base64 '#!/bin/bash'
+    DependsOn:
+      - BackendServerInstanceRole79769A0E
+    Metadata:
+      aws:cdk:path: ClientVPNStack/BackendServer/Resource
+  ClientVpnEndpoint:
+    Type: AWS::EC2::ClientVpnEndpoint
+    Properties:
+      AuthenticationOptions:
+        - MutualAuthentication:
+            ClientRootCertificateChainArn: arn:aws:acm:us-east-2:014420964653:certificate/5d1558f4-e843-4ea0-b9c2-9682d59a1d9f
+          Type: certificate-authentication
+      ClientCidrBlock: 10.100.0.0/22
+      ConnectionLogOptions:
+        Enabled: false
+      Description: Client VPN endpoint for secure remote access
+      DnsServers:
+        - 8.8.8.8
+        - 8.8.4.4
+      SecurityGroupIds:
+        - !GetAtt BackendSecurityGroup96CF32F1.GroupId
+      ServerCertificateArn: arn:aws:acm:us-east-2:014420964653:certificate/88ba03b8-4687-4760-b682-8430f9df3495
+      SplitTunnel: true
+      TransportProtocol: tcp
+      VpcId: !Ref ClientVpnVpc98F6C741
+      VpnPort: 443
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnEndpoint
+  ClientVpnAssociation:
+    Type: AWS::EC2::ClientVpnTargetNetworkAssociation
+    Properties:
+      ClientVpnEndpointId: !Ref ClientVpnEndpoint
+      SubnetId: !Ref ClientVpnVpcPrivateSubnet1Subnet4597E0CA
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnAssociation
+  ClientVpnAuthRule:
+    Type: AWS::EC2::ClientVpnAuthorizationRule
+    Properties:
+      AuthorizeAllGroups: true
+      ClientVpnEndpointId: !Ref ClientVpnEndpoint
+      Description: Allow access to all networks
+      TargetNetworkCidr: 0.0.0.0/0
+    Metadata:
+      aws:cdk:path: ClientVPNStack/ClientVpnAuthRule
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+2VTW/bMAyGf0t9LFSvS4EecnO9oTCwrUFS9LCgGBiZSbjIlKaPZK6R/z7IH0vSDbtshxx2Mv1KpB5RFDVKR9ej9PoCdu5KlpsrRYu0mXmQGwE796VBOUqbJyPnTSKptMk4uUxEUsH37MX1Pwz+HjzuoB4UFxaMPte8pFWw4ElzMp43CUOFJ1MeaxOFiaUteExEu8ZHcJt21l78wSUsFMlfPJ73zyJf8tMkF33QWes1bxLYAilYkCJff9Y8RN0aWZS9HWPdKS03P7dpunUK88AfILBcJ+MlKIciIbO9zV/NB+doxYXZ3mZladG5B84t9vvvN/Qf49ww2orpyiRaUx08PsJC4UE/aJlzWlLrLTqMf15g3oYzyOhfUZwNyHlQdCXWFlE0CvZoGYeu2Tes/i/zHuS6QvZihjJY8vW91cHMmwg9rKmU3mVKPQS/0IHLga9EJy2Z0wyUZcGrCDYNCts+LIELVsTYKZ2v1Mwoo+vQxgPTt4B9ntpTbeXLpO+yJ3yiYOeBJc6bhHqz79VdUuWaGIsKVkdn0FsbrCdAw+PijsMOKA7tO/CQQ3DopmgUSIxJGui3pr+ILhk3v39d9h31wBntXBGyfzL8nkujif2J+Ah2hf4T+p22m+OLfzwpC36tLb20IzGfe0FQpc1Uq5gKcC5UWN7VEctYYkkGVCalDhF+qKBQYXTI5OHohqJReEw9sXpJCvd7MUWng5U4jwci8uC8rl5pSx6EV+MTq7dUor0DhyJzDv3Mw4p4FX0mYKFCj3YvJrVfa35zk74dpTcXXx3RlQ3sqcJ02n1/AJHQ8PtACAAA
+    Metadata:
+      aws:cdk:path: ClientVPNStack/CDKMetadata/Default
+    Condition: CDKMetadataAvailable
+Parameters:
+  SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amikernel510hvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Conditions:
+  CDKMetadataAvailable: !Or
+    - !Or
+      - !Equals
+        - !Ref AWS::Region
+        - af-south-1
+      - !Equals
+        - !Ref AWS::Region
+        - ap-east-1
+      - !Equals
+        - !Ref AWS::Region
+        - ap-northeast-1
+      - !Equals
+        - !Ref AWS::Region
+        - ap-northeast-2
+      - !Equals
+        - !Ref AWS::Region
+        - ap-northeast-3
+      - !Equals
+        - !Ref AWS::Region
+        - ap-south-1
+      - !Equals
+        - !Ref AWS::Region
+        - ap-south-2
+      - !Equals
+        - !Ref AWS::Region
+        - ap-southeast-1
+      - !Equals
+        - !Ref AWS::Region
+        - ap-southeast-2
+      - !Equals
+        - !Ref AWS::Region
+        - ap-southeast-3
+    - !Or
+      - !Equals
+        - !Ref AWS::Region
+        - ap-southeast-4
+      - !Equals
+        - !Ref AWS::Region
+        - ca-central-1
+      - !Equals
+        - !Ref AWS::Region
+        - ca-west-1
+      - !Equals
+        - !Ref AWS::Region
+        - cn-north-1
+      - !Equals
+        - !Ref AWS::Region
+        - cn-northwest-1
+      - !Equals
+        - !Ref AWS::Region
+        - eu-central-1
+      - !Equals
+        - !Ref AWS::Region
+        - eu-central-2
+      - !Equals
+        - !Ref AWS::Region
+        - eu-north-1
+      - !Equals
+        - !Ref AWS::Region
+        - eu-south-1
+      - !Equals
+        - !Ref AWS::Region
+        - eu-south-2
+    - !Or
+      - !Equals
+        - !Ref AWS::Region
+        - eu-west-1
+      - !Equals
+        - !Ref AWS::Region
+        - eu-west-2
+      - !Equals
+        - !Ref AWS::Region
+        - eu-west-3
+      - !Equals
+        - !Ref AWS::Region
+        - il-central-1
+      - !Equals
+        - !Ref AWS::Region
+        - me-central-1
+      - !Equals
+        - !Ref AWS::Region
+        - me-south-1
+      - !Equals
+        - !Ref AWS::Region
+        - sa-east-1
+      - !Equals
+        - !Ref AWS::Region
+        - us-east-1
+      - !Equals
+        - !Ref AWS::Region
+        - us-east-2
+      - !Equals
+        - !Ref AWS::Region
+        - us-west-1
+    - !Equals
+      - !Ref AWS::Region
+      - us-west-2
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+      - Assert: !Not
+          - !Contains
+            - - '1'
+              - '2'
+              - '3'
+              - '4'
+              - '5'
+            - !Ref BootstrapVersion
+        AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.
