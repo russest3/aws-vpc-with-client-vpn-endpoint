@@ -1,28 +1,10 @@
-# aws-vpc-with-client-vpn-endpoint
-Build out an AWS VPC with Client VPN Endpoint using Cloud Development Kit!
-
-![](images/aws-vpc-with-client-vpn-endpoint.png)
-
-![](images/aws-vpc-with-client-vpn-endpoint2.png)
+# AWS VPC, Public Subnet, Private Subnet, NAT Gateway, Internet Gateway, Auto-Scaling Group, Systems Manager Access, ALB, Apache, MySQL, PHP
 
 ## Requirements
 
 - AWS CDK installed
 - AWS CLI installed
 - Run `aws configure` to configure access keys
-- Create two self-signed certificates (client, server)
-
-```
-openssl req -new -key server.pem -out client.pem
-openssl genrsa -out server_key.pem
-openssl x509 -req -in server_csr.pem -signkey server_key.pem -out server_cert.pem -days 365
-openssl genrsa -out client_key.pem
-openssl x509 -req -in client_csr.pem -signkey client_key.pem -out client_cert.pem -days 365
-```
-
-- Upload these to two AWS S3 buckets one for client and one for server and record the resource ARNs
-
-Update the `workspace/workspace_stack.py` file `server_cert_arn` and `client_cert_arn` variables
 
 ## Procedure
 

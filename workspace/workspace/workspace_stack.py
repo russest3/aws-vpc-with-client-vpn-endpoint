@@ -1,4 +1,4 @@
-##  NEED TO FIX auto scaling group health checks
+##  CloudWatch Logs not working???
 
 from aws_cdk import (
     aws_ssm as ssm,
@@ -24,7 +24,7 @@ class WorkspaceStack(Stack):
             subnet_configuration=[
                 ec2.SubnetConfiguration(
                     name="Private",
-                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
+                    subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
                     cidr_mask=24,
                     
                 ),
@@ -38,7 +38,7 @@ class WorkspaceStack(Stack):
 
         ssm_role = iam.Role(self, "SSMrole",
                 assumed_by=iam.ServicePrincipal("ec2.amazonaws.com")
-            )
+        )
         
         ssm_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore")
@@ -73,26 +73,13 @@ class WorkspaceStack(Stack):
         asg.AutoScalingGroup(self, "ASG",
             launch_template=launch_template,
             vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
             max_capacity=2,
             min_capacity=1,
-            signals=asg.Signals.wait_for_all(
-                timeout=Duration.minutes(2)
-            )
         )
 
-        # nat_gw = vpc.nat_gateways.nat_gateway_id
-        # private_subnet = vpc.private_subnets[0]
-        # route_table = private_subnet.route_table
-
-        # ec2.CfnRoute(self, "Route to NAT GW",
-        #     route_table = route_table.ref,
-        #     destination_cidr_block="0.0.0.0/0",
-        #     gateway_id=
-        # )
-
         vpc.add_interface_endpoint( "SSMvpcEndpoint",
-            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
+            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
             service=ec2.InterfaceVpcEndpointAwsService.SSM,
             )
 
@@ -104,26 +91,3 @@ class WorkspaceStack(Stack):
             "EC2MessagesEndpoint",
             service=ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES,
         )
-
-
-
-        # private_instance1 = ec2.Instance(self, "PrivateInstance1",
-        #     vpc=vpc,
-        #     instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-        #     machine_image=ec2.MachineImage.latest_amazon_linux2(),
-        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
-        #     hibernation_enabled=True,
-
-        #     user_data_causes_replacement=True,
-        #     role=ssm_role,
-        #     user_data=ec2.UserData.custom("""
-        #         yum -y update
-        #         yum -y install httpd
-        #         systemctl start httpd
-        #         systemctl enable httpd
-        #         echo "<html><h1>Welcome to my website</h1></html>" > /var/www/html/index.html    
-        #         """
-        #     ),
-        #     security_group=sg,
-        # )
-
