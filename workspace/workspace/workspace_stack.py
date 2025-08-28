@@ -1,6 +1,6 @@
 ##  Need CloudWatch Alarm to trigger AG sizing  Logstreams not working???
 ## Need to create State Manager in AWS SSM to run Ansible playbooks
-## AWS-ApplyAnsiblePlaybooks SSM Document
+## AWS-ApplyAnsiblePlaybooks SSM Documentq
 
 from aws_cdk import (
     aws_ssm as ssm,
@@ -170,4 +170,49 @@ class WorkspaceStack(Stack):
         vpc.add_interface_endpoint(
             "EC2MessagesEndpoint",
             service=ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES,
+        )
+
+        # Get Instance Ids
+        c1_cp1_instance_id = c1_cp1.instance_id
+        c1_node1_instance_id = c1_node1.instance_id
+        c1_node2_instance_id = c1_node2.instance_id
+        c1_node3_instance_id = c1_node3.instance_id
+
+        parameters = {
+                        "SourceType": [
+                            "GitHub"
+                        ],
+                        "SourceInfo": [
+                            "{\"owner\":\"russest3\", \"repository\": \"aws-vpc-with-client-vpn-endpoint\", \"getOptions\": \"branch:SessionManager\"}"
+                        ],
+                        "InstallDependencies": [
+                            "True"
+                        ],
+                        "PlaybookFile": [
+                            "automated_install.yml"
+                        ],
+                        "ExtraVariables": [
+                            ""
+                        ],
+                        "Check": [
+                            "False"
+                        ],
+                        "Verbose": [
+                            "-v"
+                        ],
+                        "TimeoutSeconds": [
+                            "3600"
+                        ]
+                    }
+
+        ssm.CfnAssociation(self, "SsmAssociation",
+            name="AWS-ApplyAnsiblePlaybooks",  # The name of the SSM Document to associate
+            targets=[
+                ssm.CfnAssociation.TargetProperty(
+                    key="InstanceIds",  # Or "tag:TagName" for dynamic targeting
+                    values=[c1_cp1_instance_id, c1_node1_instance_id, c1_node2_instance_id, c1_node3_instance_id]
+                )
+            ],
+            association_name="SsmAssociation",
+            parameters=parameters,
         )
