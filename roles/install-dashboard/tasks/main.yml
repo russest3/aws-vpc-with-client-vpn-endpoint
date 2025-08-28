@@ -1,0 +1,73 @@
+---
+# - name: 'Add kubernetes-dashboard repository'
+#   ansible.builtin.shell:
+#     cmd: |
+#       set -o pipefail
+#       helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
+#     executable: /bin/bash
+#   changed_when: false
+
+# - name: 'Install Dashboard UI'
+#   ansible.builtin.shell:
+#     cmd: |
+#       set -o pipefail
+#       helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
+#     executable: /bin/bash
+#   changed_when: false
+
+# - name: 'Pause 30 seconds for pods to start'
+#   ansible.builtin.pause:
+#     seconds: 30
+
+# - name: 'Setup Port Forwarding'
+#   ansible.builtin.shell:
+#     cmd: |
+#       set -o pipefail
+#       kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443 &
+#     executable: /bin/bash
+#   changed_when: false
+
+# - name: 'Sleep 1 minute before updating dashboard-kong-proxy'
+#   ansible.builtin.pause:
+#     minutes: 1
+
+- name: 'Copy over the manifest files'
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "./{{ item }}"
+    owner: "{{ svc_acct_name}}"
+    group: "{{ svc_acct_name}}"
+    mode: '0640'
+  loop:
+    - '7dashboard-kong-proxy-service.yaml'
+    - '8service-account.yaml'
+    - '9cluster-role-binding.yaml'
+
+- name: 'Apply the manifests'
+  ansible.builtin.shell: "kubectl apply -f {{ item }}"
+  changed_when: false
+  loop:
+    - '7dashboard-kong-proxy-service.yaml'
+    - '8service-account.yaml'
+    - '9cluster-role-binding.yaml'
+
+- name: 'Generate a token'
+  ansible.builtin.shell: "kubectl -n kubernetes-dashboard create token admin-user"
+  changed_when: false
+  register: _token
+
+- name: 'Get the pod name of the pod running dashboard-kong'
+  ansible.builtin.shell: "kubectl get pods -n kubernetes-dashboard | sed -n '2 p' | awk '{ print $1 }'"
+  changed_when: false
+  register: _dashboard_pod
+
+- name: 'Get the node hosting the dashboard pods'
+  ansible.builtin.shell: "kubectl describe pods {{ _dashboard_pod.stdout }} -n kubernetes-dashboard | grep Node: | awk '{ print $2 }' | cut -d '/' -f 2"
+  changed_when: false
+  register: _dashboard_node
+
+- ansible.builtin.debug:
+    msg:
+      - "Copy the following token to the Azure jumpbox clipboard to login to the cluster at https://{{ _dashboard_node.stdout }}:31987"
+      - "TOKEN:  {{ _token.stdout }}"
+...

@@ -1,4 +1,6 @@
 ##  Need CloudWatch Alarm to trigger AG sizing  Logstreams not working???
+## Need to create State Manager in AWS SSM to run Ansible playbooks
+## AWS-ApplyAnsiblePlaybooks SSM Document
 
 from aws_cdk import (
     aws_ssm as ssm,
@@ -55,153 +57,74 @@ class WorkspaceStack(Stack):
             allow_all_outbound=True,
         )
 
-        # Look up the latest Ubuntu AMI
+        # Look up the latest Ubuntu 22.04 LTS AMI
         ubuntu_ami = ec2.MachineImage.lookup(
-            name="ubuntu/images/hvm-ssd/ubuntu-focal-24.04-amd64-server-*",
-            owners=["099720109477"] # Canonical's owner ID
+            name="*ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server*",
+            owners=["099720109477"],  # Canonical's owner ID
+            filters={
+                "root-device-type": ["ebs"],
+                "virtualization-type": ["hvm"]
+            }
         )
+
+        with open('workspace/c1-cp1.sh', 'r') as f:
+            c1_cp1_script = f.read()
+        f.close()
 
         c1_cp1 = ec2.Instance(self, "ControlNode",
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
             machine_image=ubuntu_ami,
-            user_data=ec2.UserData.custom("""
-                #!/bin/bash
-                hostname c1-cp1
-                echo 'c1-cp1' > /etc/hostname
-                add-apt-repository -y ppa:deadsnakes/ppa
-                apt install -y python3.10 python3-pip python3-apt containerd apt-transport-https ca-certificates curl gpg net-tools
-                apt update -y
-                apt upgrade -y
-                sed -i 's/^#\s*PasswordAuthentication.*$/PasswordAuthentication yes/' /etc/ssh/sshd_config
-                sed -i 's/^KbdInteractiveAuthentication.*$/#KbdInteractiveAuthentication no/' /etc/ssh/sshd_config
-                systemctl restart sshd
-                printf 'overlay\nbr_netfilter' > /etc/modules-load.d/k8s.conf
-                modprobe overlay
-                modprobe br_netfilter
-                echo 'net.bridge.bridge-nf-call-iptables=1' | tee -a /etc/sysctl.conf
-                echo 'net.bridge.bridge-nf-call-ip6tables=1' | tee -a /etc/sysctl.conf
-                sed -i 's/^#net.ipv4.ip_forward.*$/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-                sysctl -p
-                mkdir /etc/containerd
-                containerd config default | tee /etc/containerd/config.toml
-                sed -i 's/            SystemdCgroup = false/            SystemdCgroup = true/' /etc/containerd/config.toml
-                curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-                echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
-                apt update -y
-                apt install -y kubelet kubeadm kubectl
-                apt-mark hold kubelet kubeadm kubectl containerd
-                reboot
-                """
-            ),
+            user_data=ec2.UserData.custom(c1_cp1_script),
             security_group=sg,
             role=ssm_role,
+            user_data_causes_replacement=True
         )
+
+        with open('workspace/c1-node1.sh', 'r') as f:
+            c1_node1_script = f.read()
+        f.close()
 
         c1_node1 = ec2.Instance(self, "WorkerNode1",
+            vpc=vpc,
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ec2.MachineImage.latest_ubuntu(),            
+            machine_image=ubuntu_ami,            
             security_group=sg,
             role=ssm_role,
-            user_data=ec2.UserData.custom("""
-                hostname c1-node1
-                echo 'c1-node1' > /etc/hostname
-                add-apt-repository -y ppa:deadsnakes/ppa
-                apt install -y python3.10 python3-pip python3-apt containerd apt-transport-https ca-certificates curl gpg
-                apt update -y
-                apt upgrade -y
-                sed -i 's/^#\s*PasswordAuthentication.*$/PasswordAuthentication yes/' /etc/ssh/sshd_config
-                sed -i 's/^KbdInteractiveAuthentication.*$/#KbdInteractiveAuthentication no/' /etc/ssh/sshd_config
-                systemctl restart sshd
-                printf 'overlay\nbr_netfilter' > /etc/modules-load.d/k8s.conf
-                modprobe overlay
-                modprobe br_netfilter
-                echo 'net.bridge.bridge-nf-call-iptables=1' | tee -a /etc/sysctl.conf
-                echo 'net.bridge.bridge-nf-call-ip6tables=1' | tee -a /etc/sysctl.conf
-                sed -i 's/^#net.ipv4.ip_forward.*$/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-                sysctl -p
-                mkdir /etc/containerd
-                containerd config default | tee /etc/containerd/config.toml
-                sed -i 's/            SystemdCgroup = false/            SystemdCgroup = true/' /etc/containerd/config.toml
-                curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-                echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
-                apt update -y
-                apt install -y kubelet kubeadm kubectl
-                apt-mark hold kubelet kubeadm kubectl containerd
-                reboot
-            """
-            )
+            user_data=ec2.UserData.custom(c1_node1_script),
+            user_data_causes_replacement=True
         )
+
+        with open('workspace/c1-node2.sh', 'r') as f:
+            c1_node2_script = f.read()
+        f.close()
 
         c1_node2 = ec2.Instance(self, "WorkerNode2",
+            vpc=vpc,
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ec2.MachineImage.latest_ubuntu(),            
+            machine_image=ubuntu_ami,            
             security_group=sg,
             role=ssm_role,
-            user_data=ec2.UserData.custom("""
-                hostname c1-node2
-                echo 'c1-node2' > /etc/hostname
-                add-apt-repository -y ppa:deadsnakes/ppa
-                apt install -y python3.10 python3-pip python3-apt containerd apt-transport-https ca-certificates curl gpg
-                apt update -y
-                apt upgrade -y
-                sed -i 's/^#\s*PasswordAuthentication.*$/PasswordAuthentication yes/' /etc/ssh/sshd_config
-                sed -i 's/^KbdInteractiveAuthentication.*$/#KbdInteractiveAuthentication no/' /etc/ssh/sshd_config
-                systemctl restart sshd
-                printf 'overlay\nbr_netfilter' > /etc/modules-load.d/k8s.conf
-                modprobe overlay
-                modprobe br_netfilter
-                echo 'net.bridge.bridge-nf-call-iptables=1' | tee -a /etc/sysctl.conf
-                echo 'net.bridge.bridge-nf-call-ip6tables=1' | tee -a /etc/sysctl.conf
-                sed -i 's/^#net.ipv4.ip_forward.*$/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-                sysctl -p
-                mkdir /etc/containerd
-                containerd config default | tee /etc/containerd/config.toml
-                sed -i 's/            SystemdCgroup = false/            SystemdCgroup = true/' /etc/containerd/config.toml
-                curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-                echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
-                apt update -y
-                apt install -y kubelet kubeadm kubectl
-                apt-mark hold kubelet kubeadm kubectl containerd
-                reboot
-            """
-            )
+            user_data=ec2.UserData.custom(c1_node2_script),
+            user_data_causes_replacement=True
         )
 
+        with open('workspace/c1-node3.sh', 'r') as f:
+            c1_node3_script = f.read()
+        f.close()
+
         c1_node3 = ec2.Instance(self, "WorkerNode3",
+            vpc=vpc,
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ec2.MachineImage.latest_ubuntu(),            
+            machine_image=ubuntu_ami,            
             security_group=sg,
             role=ssm_role,
-            user_data=ec2.UserData.custom("""
-                hostname c1-node3
-                echo 'c1-node3' > /etc/hostname
-                add-apt-repository -y ppa:deadsnakes/ppa
-                apt install -y python3.10 python3-pip python3-apt containerd apt-transport-https ca-certificates curl gpg
-                apt update -y
-                apt upgrade -y
-                sed -i 's/^#\s*PasswordAuthentication.*$/PasswordAuthentication yes/' /etc/ssh/sshd_config
-                sed -i 's/^KbdInteractiveAuthentication.*$/#KbdInteractiveAuthentication no/' /etc/ssh/sshd_config
-                systemctl restart sshd
-                printf 'overlay\nbr_netfilter' > /etc/modules-load.d/k8s.conf
-                modprobe overlay
-                modprobe br_netfilter
-                echo 'net.bridge.bridge-nf-call-iptables=1' | tee -a /etc/sysctl.conf
-                echo 'net.bridge.bridge-nf-call-ip6tables=1' | tee -a /etc/sysctl.conf
-                sed -i 's/^#net.ipv4.ip_forward.*$/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-                sysctl -p
-                mkdir /etc/containerd
-                containerd config default | tee /etc/containerd/config.toml
-                sed -i 's/            SystemdCgroup = false/            SystemdCgroup = true/' /etc/containerd/config.toml
-                curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-                echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
-                apt update -y
-                apt install -y kubelet kubeadm kubectl
-                apt-mark hold kubelet kubeadm kubectl containerd
-                reboot
-            """
-            )
+            user_data=ec2.UserData.custom(c1_node3_script),
+            user_data_causes_replacement=True
         )
 
         # auto_scaling_group = asg.AutoScalingGroup(self, "ASG",
