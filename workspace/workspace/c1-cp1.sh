@@ -7,7 +7,7 @@ apt update -y
 apt upgrade -y
 sed -i 's/^#\s*PasswordAuthentication.*$/PasswordAuthentication yes/' /etc/ssh/sshd_config
 sed -i 's/^KbdInteractiveAuthentication.*$/#KbdInteractiveAuthentication no/' /etc/ssh/sshd_config
-systemctl restart sshd
+systemctl restart ssh
 echo 'overlay' > /etc/modules-load.d/k8s.conf
 echo 'br_netfilter' >> /etc/modules-load.d/k8s.conf
 modprobe overlay
@@ -24,4 +24,16 @@ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.
 apt update -y
 apt install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl containerd
+kubeadm init --kubernetes-version v1.30.5 --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem
+mkdir -p /home/ubuntu/.kube
+chown ubuntu:ubuntu /home/ubuntu/.kube
+cp /home/ubuntu/.kube/config /etc/kubernetes/admin.conf
+sudo su - ubuntu
+wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+kubectl create -f /home/ubuntu/kube-flannel.yml
+sleep 60
+wget https://get.helm.sh/helm-v3.15.3-linux-amd64.tar.gz
+tar -xvzf helm-v3.15.3-linux-amd64.tar.gz
+cp helm-v3.15.3-linux-amd64/linux-amd64/helm /usr/bin/helm
+kubeadm token create --print-join-command
 reboot

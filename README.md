@@ -19,24 +19,7 @@ AWS-ApplyAnsiblePlaybooks SSM Document
 
 https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-state-manager-ansible.html
 
-aws ssm create-association --name "AWS-ApplyAnsiblePlaybooks" \
-    --targets Key=tag:TagKey,Values=TagValue \
-    --parameters '{"SourceType":["GitHub"],"SourceInfo":["{\"owner\":\"owner_name\", \"repository\": \"name\", \"getOptions\": \"branch:master\"}"],"InstallDependencies":["True_or_False"],"PlaybookFile":["file_name.yml"],"ExtraVariables":["key/value_pairs_separated_by_a_space"],"Check":["True_or_False"],"Verbose":["-v,-vv,-vvv, or -vvvv"],"TimeoutSeconds":["3600"]}' \
-    --association-name "name" \
-    --schedule-expression "cron_or_rate_expression"
-
-{
-   "owner":"user_name",
-   "repository":"name",
-   "path":"path_to_directory_or_playbook_to_download",
-   "getOptions":"branch:branch_name",
-   "tokenInfo":"{{(Optional)_token_information}}"
-}
-
-aws ssm send-command \
-    --document-name "AWS-ApplyAnsiblePlaybooks" \
-    --targets "Key=InstanceIds,Values=instance-id" \
-    --cli-input-json file://c1-cp1.json
+aws ssm start-session --target i-07c7af40baedc789d --document-name AWS-StartPortForwardingSession --parameters '{"portNumber":["<remote-port>"],"localPortNumber":["<local-port>"]}'
 
 ## Procedure
 

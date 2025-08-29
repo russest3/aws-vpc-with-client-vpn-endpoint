@@ -3,6 +3,7 @@
 ## AWS-ApplyAnsiblePlaybooks SSM Documentq
 
 from aws_cdk import (
+    aws_s3 as s3,
     aws_ssm as ssm,
     aws_rds as rds,
     aws_iam as iam,
@@ -10,9 +11,11 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_autoscaling as asg,
     aws_route53 as route53,
+    aws_s3_deployment as s3deploy,
     Stack,
     CfnOutput,
     Duration,
+    RemovalPolicy
 )
 from constructs import Construct
 import os
@@ -21,10 +24,25 @@ class WorkspaceStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        # c1_node1_bucket = s3.Bucket(self, "C1Node1Bucket",
+        #     auto_delete_objects=True,
+        #     # block_public_access=True,
+        #     versioned=True,
+        #     bucket_name="russest3-c1-node1-bucket",
+        #     removal_policy=RemovalPolicy.DESTROY,
+        #     website_index_document="kube-flannel.yml",
+        # )
+
+        # c1_node1_bucket_policy = iam.PolicyStatement(
+        #     actions=["s3:GetObject"],
+        #     resources=[c1_node1_bucket.arn_for_objects("*")],
+        #     principals=[iam.ServicePrincipal('ssm.amazonaws.com')],
+        # )
+
         vpc = ec2.Vpc(self, "Vpc",
             max_azs=2,
             cidr="10.192.0.0/16",
-            nat_gateways=0,
+            nat_gateways=1,
             subnet_configuration=[
                 ec2.SubnetConfiguration(
                     name="Private",
@@ -167,51 +185,38 @@ class WorkspaceStack(Stack):
         )
 
         # Get Instance Ids
-        c1_cp1_instance_id = c1_cp1.instance_id
+        # c1_cp1_instance_id = c1_cp1.instance_id
         # c1_node1_instance_id = c1_node1.instance_id
         # c1_node2_instance_id = c1_node2.instance_id
         # c1_node3_instance_id = c1_node3.instance_id
 
-        # This is not working, why?  Doesn't like the source
-        c1_cp1_copy_files_ssm_association = ssm.CfnAssociation(self, "C1CP1CopyFilesSsmAssociation",
-            name="AWSFleetManager-CopyFileSystemItem",  # The name of the SSM Document to associate
-            targets=[
-                ssm.CfnAssociation.TargetProperty(
-                    key="InstanceIds",  # Or "tag:TagName" for dynamic targeting
-                    values=[c1_cp1_instance_id]
-                )
-            ],
-            association_name="C1CP1CopyFilesSsmAssociation",
-        )
-
-        c1_cp1_copy_files_ssm_association.add_override('Properties.Parameters.files', ['workspace/kube-flannel.yml'])
-
-        c1_cp1_run_shell_ssm_association = ssm.CfnAssociation(self, "C1CP1SsmAssociation",
-            name="AWS-RunShellScript",  # The name of the SSM Document to associate
-            targets=[
-                ssm.CfnAssociation.TargetProperty(
-                    key="InstanceIds",  # Or "tag:TagName" for dynamic targeting
-                    values=[c1_cp1_instance_id]
-                )
-            ],
-            association_name="C1CP1SsmAssociation",
-            parameters={
-                "commands": [
-                    "echo " + c1_cp1.instance_private_ip + " c1-cp1 c1-cp1.example.com >> /etc/hosts",
+        # c1_cp1_run_shell_ssm_association = ssm.CfnAssociation(self, "C1CP1SsmAssociation",
+        #     name="AWS-RunShellScript",  # The name of the SSM Document to associate
+        #     targets=[
+        #         ssm.CfnAssociation.TargetProperty(
+        #             key="InstanceIds",  # Or "tag:TagName" for dynamic targeting
+        #             values=[c1_cp1_instance_id]
+        #         )
+        #     ],
+        #     association_name="C1CP1SsmAssociation",
+        #     parameters={
+        #         "commands": [
+        #             "echo " + c1_cp1.instance_private_ip + " c1-cp1 c1-cp1.example.com >> /etc/hosts",
                     # "echo " + c1_node1.instance_private_ip + " c1-node1 c1-node1.example.com >> /etc/hosts",
                     # "echo " + c1_node2.instance_private_ip + " c1-node2 c1-node2.example.com >> /etc/hosts",
                     # "echo " + c1_node3.instance_private_ip + " c1-node3 c1-node3.example.com >> /etc/hosts",
-                    "kubeadm init --kubernetes-version v1.30.5 --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem",
-                    "mkdir -p /home/ubuntu/.kube",
-                    "cp /home/ubuntu/.kube/config /etc/kubernetes/admin.conf",
-                    "kubectl create -f /home/ubuntu/kube-flannel.yml",
-                    "sleep 60",
-                    "kubectl get nodes -A -o wide",
-                    "wget https://get.helm.sh/helm-v3.15.3-linux-amd64.tar.gz",
-                    "tar -xvzf helm-v3.15.3-linux-amd64.tar.gz",
-                    "cp helm-v3.15.3-linux-amd64/linux-amd64/helm /usr/bin/helm",
-                    "kubeadm token create --print-join-command"
-                ]
-            }
-        )
+        #             "kubeadm init --kubernetes-version v1.30.5 --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem",
+        #             "mkdir -p /home/ubuntu/.kube",
+        #             "cp /home/ubuntu/.kube/config /etc/kubernetes/admin.conf",
+        #             "wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml",
+        #             "kubectl create -f /home/ubuntu/kube-flannel.yml",
+        #             "sleep 60",
+        #             "kubectl get nodes -A -o wide",
+        #             "wget https://get.helm.sh/helm-v3.15.3-linux-amd64.tar.gz",
+        #             "tar -xvzf helm-v3.15.3-linux-amd64.tar.gz",
+        #             "cp helm-v3.15.3-linux-amd64/linux-amd64/helm /usr/bin/helm",
+        #             "kubeadm token create --print-join-command",
+        #         ]
+        #     }
+        # )
 
