@@ -26,15 +26,9 @@ class WorkspaceStack(Stack):
             cidr="10.192.0.0/16",
             nat_gateways=0,
             subnet_configuration=[
-                # ec2.SubnetConfiguration(
-                #     name="Private",
-                #     subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
-                #     cidr_mask=24,
-                    
-                # ),
                 ec2.SubnetConfiguration(
-                    name="Public",
-                    subnet_type=ec2.SubnetType.PUBLIC,
+                    name="Private",
+                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
                     cidr_mask=24,                    
                 ),
             ]
@@ -73,7 +67,7 @@ class WorkspaceStack(Stack):
 
         c1_cp1 = ec2.Instance(self, "ControlNode",
             vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
             machine_image=ubuntu_ami,
             user_data=ec2.UserData.custom(c1_cp1_script),
@@ -82,55 +76,55 @@ class WorkspaceStack(Stack):
             user_data_causes_replacement=True
         )
 
-        with open('workspace/c1-node1.sh', 'r') as f:
-            c1_node1_script = f.read()
-        f.close()
+        # with open('workspace/c1-node1.sh', 'r') as f:
+        #     c1_node1_script = f.read()
+        # f.close()
 
-        c1_node1 = ec2.Instance(self, "WorkerNode1",
-            vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami,            
-            security_group=sg,
-            role=ssm_role,
-            user_data=ec2.UserData.custom(c1_node1_script),
-            user_data_causes_replacement=True
-        )
+        # c1_node1 = ec2.Instance(self, "WorkerNode1",
+        #     vpc=vpc,
+        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
+        #     instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+        #     machine_image=ubuntu_ami,            
+        #     security_group=sg,
+        #     role=ssm_role,
+        #     user_data=ec2.UserData.custom(c1_node1_script),
+        #     user_data_causes_replacement=True
+        # )
 
-        with open('workspace/c1-node2.sh', 'r') as f:
-            c1_node2_script = f.read()
-        f.close()
+        # with open('workspace/c1-node2.sh', 'r') as f:
+        #     c1_node2_script = f.read()
+        # f.close()
 
-        c1_node2 = ec2.Instance(self, "WorkerNode2",
-            vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami,            
-            security_group=sg,
-            role=ssm_role,
-            user_data=ec2.UserData.custom(c1_node2_script),
-            user_data_causes_replacement=True
-        )
+        # c1_node2 = ec2.Instance(self, "WorkerNode2",
+        #     vpc=vpc,
+        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
+        #     instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+        #     machine_image=ubuntu_ami,            
+        #     security_group=sg,
+        #     role=ssm_role,
+        #     user_data=ec2.UserData.custom(c1_node2_script),
+        #     user_data_causes_replacement=True
+        # )
 
-        with open('workspace/c1-node3.sh', 'r') as f:
-            c1_node3_script = f.read()
-        f.close()
+        # with open('workspace/c1-node3.sh', 'r') as f:
+        #     c1_node3_script = f.read()
+        # f.close()
 
-        c1_node3 = ec2.Instance(self, "WorkerNode3",
-            vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami,            
-            security_group=sg,
-            role=ssm_role,
-            user_data=ec2.UserData.custom(c1_node3_script),
-            user_data_causes_replacement=True
-        )
+        # c1_node3 = ec2.Instance(self, "WorkerNode3",
+        #     vpc=vpc,
+        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
+        #     instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+        #     machine_image=ubuntu_ami,            
+        #     security_group=sg,
+        #     role=ssm_role,
+        #     user_data=ec2.UserData.custom(c1_node3_script),
+        #     user_data_causes_replacement=True
+        # )
 
         # auto_scaling_group = asg.AutoScalingGroup(self, "ASG",
         #     launch_template=launch_template_worker_nodes,
         #     vpc=vpc,
-        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
+        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
         #     max_capacity=2,
         #     min_capacity=1,
         # )
@@ -138,7 +132,7 @@ class WorkspaceStack(Stack):
         # rds_database = rds.DatabaseInstance(self, "MySQLDB",
         #     engine=rds.DatabaseInstanceEngine.mysql(version=rds.MysqlEngineVersion.VER_8_0_42),
         #     vpc=vpc,
-        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
+        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
         #     instance_type='db.t3.micro'
         # )
 
@@ -159,7 +153,7 @@ class WorkspaceStack(Stack):
         # )
 
         vpc.add_interface_endpoint( "SSMvpcEndpoint",
-            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
+            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
             service=ec2.InterfaceVpcEndpointAwsService.SSM,
         )
 
@@ -174,45 +168,50 @@ class WorkspaceStack(Stack):
 
         # Get Instance Ids
         c1_cp1_instance_id = c1_cp1.instance_id
-        c1_node1_instance_id = c1_node1.instance_id
-        c1_node2_instance_id = c1_node2.instance_id
-        c1_node3_instance_id = c1_node3.instance_id
+        # c1_node1_instance_id = c1_node1.instance_id
+        # c1_node2_instance_id = c1_node2.instance_id
+        # c1_node3_instance_id = c1_node3.instance_id
 
-        parameters = {
-                        "SourceType": [
-                            "GitHub"
-                        ],
-                        "SourceInfo": [
-                            "{\"owner\":\"russest3\", \"repository\": \"aws-vpc-with-client-vpn-endpoint\", \"getOptions\": \"branch:SessionManager\"}"
-                        ],
-                        "InstallDependencies": [
-                            "True"
-                        ],
-                        "PlaybookFile": [
-                            "automated_install.yml"
-                        ],
-                        "ExtraVariables": [
-                            ""
-                        ],
-                        "Check": [
-                            "False"
-                        ],
-                        "Verbose": [
-                            "-v"
-                        ],
-                        "TimeoutSeconds": [
-                            "3600"
-                        ]
-                    }
-
-        ssm.CfnAssociation(self, "SsmAssociation",
-            name="AWS-ApplyAnsiblePlaybooks",  # The name of the SSM Document to associate
+        # This is not working, why?  Doesn't like the source
+        c1_cp1_copy_files_ssm_association = ssm.CfnAssociation(self, "C1CP1CopyFilesSsmAssociation",
+            name="AWSFleetManager-CopyFileSystemItem",  # The name of the SSM Document to associate
             targets=[
                 ssm.CfnAssociation.TargetProperty(
                     key="InstanceIds",  # Or "tag:TagName" for dynamic targeting
-                    values=[c1_cp1_instance_id, c1_node1_instance_id, c1_node2_instance_id, c1_node3_instance_id]
+                    values=[c1_cp1_instance_id]
                 )
             ],
-            association_name="SsmAssociation",
-            parameters=parameters,
+            association_name="C1CP1CopyFilesSsmAssociation",
         )
+
+        c1_cp1_copy_files_ssm_association.add_override('Properties.Parameters.files', ['workspace/kube-flannel.yml'])
+
+        c1_cp1_run_shell_ssm_association = ssm.CfnAssociation(self, "C1CP1SsmAssociation",
+            name="AWS-RunShellScript",  # The name of the SSM Document to associate
+            targets=[
+                ssm.CfnAssociation.TargetProperty(
+                    key="InstanceIds",  # Or "tag:TagName" for dynamic targeting
+                    values=[c1_cp1_instance_id]
+                )
+            ],
+            association_name="C1CP1SsmAssociation",
+            parameters={
+                "commands": [
+                    "echo " + c1_cp1.instance_private_ip + " c1-cp1 c1-cp1.example.com >> /etc/hosts",
+                    # "echo " + c1_node1.instance_private_ip + " c1-node1 c1-node1.example.com >> /etc/hosts",
+                    # "echo " + c1_node2.instance_private_ip + " c1-node2 c1-node2.example.com >> /etc/hosts",
+                    # "echo " + c1_node3.instance_private_ip + " c1-node3 c1-node3.example.com >> /etc/hosts",
+                    "kubeadm init --kubernetes-version v1.30.5 --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem",
+                    "mkdir -p /home/ubuntu/.kube",
+                    "cp /home/ubuntu/.kube/config /etc/kubernetes/admin.conf",
+                    "kubectl create -f /home/ubuntu/kube-flannel.yml",
+                    "sleep 60",
+                    "kubectl get nodes -A -o wide",
+                    "wget https://get.helm.sh/helm-v3.15.3-linux-amd64.tar.gz",
+                    "tar -xvzf helm-v3.15.3-linux-amd64.tar.gz",
+                    "cp helm-v3.15.3-linux-amd64/linux-amd64/helm /usr/bin/helm",
+                    "kubeadm token create --print-join-command"
+                ]
+            }
+        )
+
