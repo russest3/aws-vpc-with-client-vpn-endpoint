@@ -27,8 +27,10 @@ apt-mark hold kubelet kubeadm kubectl containerd
 kubeadm init --kubernetes-version v1.30.5 --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem
 mkdir -p /home/ubuntu/.kube
 chown ubuntu:ubuntu /home/ubuntu/.kube
-cp /home/ubuntu/.kube/config /etc/kubernetes/admin.conf
+cp /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
+chown ubuntu:ubuntu /home/ubuntu/.kube/config
 sudo su - ubuntu
+cd /home/ubuntu
 wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 kubectl create -f /home/ubuntu/kube-flannel.yml
 sleep 60

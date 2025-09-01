@@ -6,6 +6,7 @@
 - AWS CLI installed
 - Run `aws configure` to configure access keys
 - AWS Session Manager installed
+- openvpn3 installed
 
 ## Session Manager
 
@@ -15,11 +16,27 @@ $ sudo dpkg -i session-manager-plugin.deb
 
 ```
 
-AWS-ApplyAnsiblePlaybooks SSM Document
+## VPN Access
 
-https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-state-manager-ansible.html
+Generate self signed certificates using easy-rsa.
 
-aws ssm start-session --target i-07c7af40baedc789d --document-name AWS-StartPortForwardingSession --parameters '{"portNumber":["<remote-port>"],"localPortNumber":["<local-port>"]}'
+```
+sudo apt install easy-rsa -y
+sudo su -
+./easyrsa init-pki
+./easyrsa build-ca nopass
+./easyrsa build-key-server server.example.com
+./easyrsa build-key client
+```
+
+Create Certificates in ACM and record their ARNs.  Update lines 24,25 in the workspace_stack.py file
+
+After stack is created use openvpn3 to connect to the vpn client endpoint:
+
+```
+openvpn3 session-start --config config.ovpn
+```
+
 
 ## Procedure
 

@@ -24,18 +24,18 @@
   vars_files:
     - common_vars.yml
 
-  # pre_tasks:
-    # - name: Check ssh key status
-    #   stat:
-    #     path: ~/.ssh/KubernetesKeyPair.pem
-    #   register: _st
+  pre_tasks:
+    - name: Check ssh key status
+      stat:
+        path: ~/.ssh/KubernetesKeyPair.pem
+      register: _st
 
-    # - name: 'Check that ssh key is setup properly'
-    #   ansible.builtin.assert:
-    #     that:
-    #       - _st.stat.exists
-    #       - _st.stat.mode == '0400'
-    #     fail_msg: 'SSH key is not setup properly.  Please run `make sshkey` and ensure permissions are 0400'
+    - name: 'Check that ssh key is setup properly'
+      ansible.builtin.assert:
+        that:
+          - _st.stat.exists
+          - _st.stat.mode == '0400'
+        fail_msg: 'SSH key is not setup properly.  Please run `make sshkey` and ensure permissions are 0400'
 
     # - name: 'Retrieve AMI info of Ubuntu 24.04 image'
     #   ansible.builtin.shell:
@@ -53,22 +53,22 @@
     #   vars:
     #     _query: "Images[].ImageId | [0]"
 
-    # - ansible.builtin.stat:
-    #     path: "/var/tmp/.baseclusterinstall"
-    #   register: _p
+    - ansible.builtin.stat:
+        path: "/var/tmp/.baseclusterinstall"
+      register: _p
 
-    # - ansible.builtin.pause:
-    #     prompt: "It appears the base Kubernetes cluster build has already run.  Do you wish to rerun? (Y/N)"
-    #   when: _p.stat.exists == true
-    #   register: rerun_input
+    - ansible.builtin.pause:
+        prompt: "It appears the base Kubernetes cluster build has already run.  Do you wish to rerun? (Y/N)"
+      when: _p.stat.exists == true
+      register: rerun_input
 
-    # - ansible.builtin.set_fact:
-    #     _rerun_input: "{{ rerun_input.user_input | lower }}"
-    #   when: _p.stat.exists == true
+    - ansible.builtin.set_fact:
+        _rerun_input: "{{ rerun_input.user_input | lower }}"
+      when: _p.stat.exists == true
 
-    # - ansible.builtin.set_fact:
-    #     _rerun_input: 'y'
-    #   when: _p.stat.exists == false
+    - ansible.builtin.set_fact:
+        _rerun_input: 'y'
+      when: _p.stat.exists == false
 
   # tasks:
   #   - name: 'Include CDK tasks'
@@ -83,15 +83,14 @@
     - name: 'Getting node information...'
       ansible.builtin.include_tasks: 'include_tasks/get_node_info.yml'
     
-    # - name: 'Add hosts to /etc/hosts'
-    #   ansible.builtin.blockinfile:
-    #     path: /etc/hosts
-    #     block: |
-    #       {{ c1_cp1_private_ip }} c1-cp1 c1-cp1.example.com
-    #       {{ c1_node1_private_ip }} c1-node1 c1-node1.example.com
-    #       {{ c1_node2_private_ip }} c1-node2 c1-node2.example.com
-    #       {{ c1_node3_private_ip }} c1-node3 c1-node3.example.com
-    #   become: true
+    - name: 'Update /etc/hosts'
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          {{ c1_cp1_private_ip }} c1-cp1.example.com c1-cp1
+          {{ c1_node1_private_ip }} c1-node1.example.com c1-node1
+          {{ c1_node2_private_ip }} c1-node2.example.com c1-node2
+          {{ c1_node3_private_ip }} c1-node3.example.com c1-node3
 
     # - name: 'Add hosts to inventory'
     #   ansible.builtin.add_host:
@@ -119,17 +118,8 @@
 #         path: "/var/tmp/.baseclusterinstall"
 #       register: _file_exist
 
-    - name: 'Update /etc/hosts'
-      ansible.builtin.blockinfile:
-        path: /etc/hosts
-        block: |
-          {{ c1_cp1_private_ip }} c1-cp1.example.com c1-cp1
-          {{ c1_node1_private_ip }} c1-node1.example.com c1-node1
-          {{ c1_node2_private_ip }} c1-node2.example.com c1-node2
-          {{ c1_node3_private_ip }} c1-node3.example.com c1-node3
-
-  roles:
-    - role: control-plane-node
+  # roles:
+  #   - role: control-plane-node
 #       when: _file_exist.stat.exists == false
 
 #   vars:
@@ -143,149 +133,149 @@
 #        force: true
 #       become: true
 
-# - name: 'Configure c1-node1'
-#   hosts: c1-node1
-#   gather_facts: true
-#   become: true
-#   remote_user: ubuntu
+- name: 'Configure c1-node1'
+  hosts: c1-node1
+  gather_facts: true
+  become: true
+  remote_user: ubuntu
 
-#   vars_files:
-#     - common_vars.yml
+  vars_files:
+    - common_vars.yml
 
-#   vars:
-#     ansible_python_interpreter: '/usr/bin/python3'
+  vars:
+    ansible_python_interpreter: '/usr/bin/python3'
 
-#   pre_tasks:
-#     - ansible.builtin.stat:
-#         path: "/var/tmp/.wninstall"
-#       register: _file_exist
+  pre_tasks:
+    - ansible.builtin.stat:
+        path: "/var/tmp/.wninstall"
+      register: _file_exist
 
-#   tasks:
-#     - name: 'Update /etc/hosts'
-#       ansible.builtin.blockinfile:
-#         path: /etc/hosts
-#         block: |
-#           {{ hostvars['localhost']['c1_cp1_private_ip'] }} c1-cp1.example.com c1-cp1
-#           {{ hostvars['localhost']['c1_node1_private_ip'] }} c1-node1.example.com c1-node1
-#           {{ hostvars['localhost']['c1_node2_private_ip'] }} c1-node2.example.com c1-node2
-#           {{ hostvars['localhost']['c1_node3_private_ip'] }} c1-node3.example.com c1-node3
+  tasks:
+    - name: 'Update /etc/hosts'
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          {{ hostvars['localhost']['c1_cp1_private_ip'] }} c1-cp1.example.com c1-cp1
+          {{ hostvars['localhost']['c1_node1_private_ip'] }} c1-node1.example.com c1-node1
+          {{ hostvars['localhost']['c1_node2_private_ip'] }} c1-node2.example.com c1-node2
+          {{ hostvars['localhost']['c1_node3_private_ip'] }} c1-node3.example.com c1-node3
 
-#   post_tasks:
-#     - name: 'Get the join command'
-#       ansible.builtin.pause:
-#         prompt: "Please paste in the join command: "
-#       register: _join_command
-#       delegate_to: localhost
+  post_tasks:
+    - name: 'Get the join command'
+      ansible.builtin.pause:
+        prompt: "Please paste in the join command: "
+      register: _join_command
+      delegate_to: localhost
 
-#     - name: 'Run the join-command to join the node to the cluster'
-#       ansible.builtin.shell:
-#         cmd: |
-#           set -o pipefail
-#           {{ _join_command.user_input }}
-#         executable: /bin/bash
-#       changed_when: false
+    - name: 'Run the join-command to join the node to the cluster'
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          {{ _join_command.user_input }}
+        executable: /bin/bash
+      changed_when: false
 
-#     - ansible.builtin.copy:
-#         content: "complete"
-#         dest: "/var/tmp/.wninstall"
-#         force: true
-#       become: true
+    - ansible.builtin.copy:
+        content: "complete"
+        dest: "/var/tmp/.wninstall"
+        force: true
+      become: true
 
-# - name: 'Configure c1-node2'
-#   hosts: c1-node2
-#   gather_facts: true
-#   become: true
-#   remote_user: ubuntu
+- name: 'Configure c1-node2'
+  hosts: c1-node2
+  gather_facts: true
+  become: true
+  remote_user: ubuntu
 
-#   vars_files:
-#     - common_vars.yml
+  vars_files:
+    - common_vars.yml
 
-#   vars:
-#     ansible_python_interpreter: '/usr/bin/python3'
+  vars:
+    ansible_python_interpreter: '/usr/bin/python3'
 
-#   pre_tasks:
-#     - ansible.builtin.stat:
-#         path: "/var/tmp/.wninstall"
-#       register: _file_exist
+  pre_tasks:
+    - ansible.builtin.stat:
+        path: "/var/tmp/.wninstall"
+      register: _file_exist
 
-#   tasks:
-#     - name: 'Update /etc/hosts'
-#       ansible.builtin.blockinfile:
-#         path: /etc/hosts
-#         block: |
-#           {{ hostvars['localhost']['c1_cp1_private_ip'] }} c1-cp1.example.com c1-cp1
-#           {{ hostvars['localhost']['c1_node1_private_ip'] }} c1-node1.example.com c1-node1
-#           {{ hostvars['localhost']['c1_node2_private_ip'] }} c1-node2.example.com c1-node2
-#           {{ hostvars['localhost']['c1_node3_private_ip'] }} c1-node3.example.com c1-node3
+  tasks:
+    - name: 'Update /etc/hosts'
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          {{ hostvars['localhost']['c1_cp1_private_ip'] }} c1-cp1.example.com c1-cp1
+          {{ hostvars['localhost']['c1_node1_private_ip'] }} c1-node1.example.com c1-node1
+          {{ hostvars['localhost']['c1_node2_private_ip'] }} c1-node2.example.com c1-node2
+          {{ hostvars['localhost']['c1_node3_private_ip'] }} c1-node3.example.com c1-node3
 
-#   post_tasks:
-#     - name: 'Get the join command'
-#       ansible.builtin.pause:
-#         prompt: "Please paste in the join command: "
-#       register: _join_command
-#       delegate_to: localhost
+  post_tasks:
+    - name: 'Get the join command'
+      ansible.builtin.pause:
+        prompt: "Please paste in the join command: "
+      register: _join_command
+      delegate_to: localhost
 
-#     - name: 'Run the join-command to join the node to the cluster'
-#       ansible.builtin.shell:
-#         cmd: |
-#           set -o pipefail
-#           {{ _join_command.user_input }}
-#         executable: /bin/bash
-#       changed_when: false
+    - name: 'Run the join-command to join the node to the cluster'
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          {{ _join_command.user_input }}
+        executable: /bin/bash
+      changed_when: false
 
-#     - ansible.builtin.copy:
-#         content: "complete"
-#         dest: "/var/tmp/.wninstall"
-#         force: true
-#       become: true
+    - ansible.builtin.copy:
+        content: "complete"
+        dest: "/var/tmp/.wninstall"
+        force: true
+      become: true
 
-# - name: 'Configure c1-node3'
-#   hosts: c1-node3
-#   gather_facts: true
-#   become: true
-#   remote_user: ubuntu
+- name: 'Configure c1-node3'
+  hosts: c1-node3
+  gather_facts: true
+  become: true
+  remote_user: ubuntu
 
-#   vars_files:
-#     - common_vars.yml
+  vars_files:
+    - common_vars.yml
 
-#   vars:
-#     ansible_python_interpreter: '/usr/bin/python3'
+  vars:
+    ansible_python_interpreter: '/usr/bin/python3'
 
-#   pre_tasks:
-#     - ansible.builtin.stat:
-#         path: "/var/tmp/.wninstall"
-#       register: _file_exist
+  pre_tasks:
+    - ansible.builtin.stat:
+        path: "/var/tmp/.wninstall"
+      register: _file_exist
 
-#   tasks:
-#     - name: 'Update /etc/hosts'
-#       ansible.builtin.blockinfile:
-#         path: /etc/hosts
-#         block: |
-#           {{ hostvars['localhost']['c1_cp1_private_ip'] }} c1-cp1.example.com c1-cp1
-#           {{ hostvars['localhost']['c1_node1_private_ip'] }} c1-node1.example.com c1-node1
-#           {{ hostvars['localhost']['c1_node2_private_ip'] }} c1-node2.example.com c1-node2
-#           {{ hostvars['localhost']['c1_node3_private_ip'] }} c1-node3.example.com c1-node3
+  tasks:
+    - name: 'Update /etc/hosts'
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          {{ hostvars['localhost']['c1_cp1_private_ip'] }} c1-cp1.example.com c1-cp1
+          {{ hostvars['localhost']['c1_node1_private_ip'] }} c1-node1.example.com c1-node1
+          {{ hostvars['localhost']['c1_node2_private_ip'] }} c1-node2.example.com c1-node2
+          {{ hostvars['localhost']['c1_node3_private_ip'] }} c1-node3.example.com c1-node3
 
-#   post_tasks:
-#     - name: 'Get the join command'
-#       ansible.builtin.pause:
-#         prompt: "Please paste in the join command: "
-#       register: _join_command
-#       delegate_to: localhost
+  post_tasks:
+    - name: 'Get the join command'
+      ansible.builtin.pause:
+        prompt: "Please paste in the join command: "
+      register: _join_command
+      delegate_to: localhost
 
-#     - name: 'Run the join-command to join the node to the cluster'
-#       ansible.builtin.shell:
-#         cmd: |
-#           set -o pipefail
-#           {{ _join_command.user_input }}
-#         executable: /bin/bash
-#       changed_when: false
+    - name: 'Run the join-command to join the node to the cluster'
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          {{ _join_command.user_input }}
+        executable: /bin/bash
+      changed_when: false
 
-#     - ansible.builtin.copy:
-#         content: "complete"
-#         dest: "/var/tmp/.wninstall"
-#         force: true
-#       become: true
+    - ansible.builtin.copy:
+        content: "complete"
+        dest: "/var/tmp/.wninstall"
+        force: true
+      become: true
 
 # - name: 'Beginning installation of Kubernetes Dashboard'
 #   hosts: c1-cp1
