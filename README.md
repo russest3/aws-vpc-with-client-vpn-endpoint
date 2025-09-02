@@ -1,5 +1,9 @@
 # AWS VPC, Public Subnet, Private Subnet, NAT Gateway, Internet Gateway, Auto-Scaling Group, Systems Manager Access, ALB, Apache, MySQL, PHP
 
+## Architecture
+
+![](images/aws-vpc.drawio.png)
+
 ## Requirements
 
 - AWS CDK installed
