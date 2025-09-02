@@ -1,0 +1,5 @@
+c1-cp1 ansible_ssh_private_key_file=~/.ssh/KubernetesKeyPair.pem
+c1-node1 ansible_ssh_private_key_file=~/.ssh/KubernetesKeyPair.pem
+c1-node2 ansible_ssh_private_key_file=~/.ssh/KubernetesKeyPair.pem
+c1-node3 ansible_ssh_private_key_file=~/.ssh/KubernetesKeyPair.pem
+localhost

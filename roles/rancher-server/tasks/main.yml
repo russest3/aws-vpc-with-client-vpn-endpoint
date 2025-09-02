@@ -1,0 +1,78 @@
+---
+- name: 'Create the cattle-system namespace'
+  ansible.builtin.shell: "kubectl create namespace cattle-system"
+  changed_when: false
+
+- name: 'Add the Helm chart repository'
+  ansible.builtin.shell: "helm repo add rancher-stable https://releases.rancher.com/server-charts/stable"
+
+- name: 'Install the cert-manager manifest'
+  ansible.builtin.shell: "kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v{{ cert_manager_version }}/cert-manager.yaml"
+  changed_when: false
+
+- name: 'Pause one minute'
+  ansible.builtin.pause:
+    minutes: 1
+
+- name: 'Install Rancher'
+  ansible.builtin.shell: "helm install rancher rancher-stable/rancher --version={{ rancher_version }} --namespace cattle-system --set hostname=rancher"
+  changed_when: false
+
+- name: 'Pause 3 minutes'
+  ansible.builtin.pause:
+    minutes: 3
+
+- name: 'Verify installation was successful'
+  ansible.builtin.shell: "kubectl -n cattle-system rollout status deploy/rancher"
+  register: _rancher_results
+  until: "'successfully rolled out' in _rancher_results.stdout"
+  retries: 25
+  delay: 15
+
+- name: 'Patch the rancher service to use NodePort'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl patch svc rancher -n cattle-system -p '{"spec": {"type": "NodePort"}}'
+    executable: /bin/bash
+  changed_when: false
+
+- name: 'Get the NodePort assigned'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl get service rancher -n cattle-system -o yaml | grep nodePort | sed -n '2 p' | awk '{ print $2 }'
+    executable: /bin/bash
+  register: _rancher_node_port
+  changed_when: false
+
+- name: 'Get the pod name of the pod running rancher server'
+  ansible.builtin.shell: "kubectl get pods -n cattle-system | grep Running | head -1 | awk '{ print $1 }'"
+  changed_when: false
+  register: _rancher_pod
+
+- name: 'Get the node that is running the API server'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl describe pods {{ _rancher_pod.stdout }} -n cattle-system | grep Node: | awk '{ print $2 }' | cut -d '/' -f 2
+    executable: /bin/bash
+  register: _rancher_node_ip
+  changed_when: false
+
+- name: 'Get the password'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl get secret --namespace cattle-system bootstrap-secret -o yaml | grep bootstrapPassword | awk '{ print $2 }'
+    executable: /bin/bash
+  register: _rancher_pw
+  changed_when: false
+  vars:
+    _template: "{{.data.bootstrapPassword|base64decode}}"
+
+- ansible.builtin.debug:
+    msg:
+      - "Copy the following password to the Azure jumpbox clipboard to login to the cluster at https://{{ _rancher_node_ip.stdout }}:{{  _rancher_node_port.stdout }}"
+      - "PASSWORD:  {{ _rancher_pw.stdout }}"
+...

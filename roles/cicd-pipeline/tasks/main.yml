@@ -1,0 +1,88 @@
+---
+- name: 'Create the argocd namespace'
+  ansible.builtin.shell: "kubectl create namespace argocd"
+  changed_when: false
+
+- name: 'Apply the argocd manifest'
+  ansible.builtin.shell: "kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
+  changed_when: false
+
+- name: 'Pause 1 minute to allow pods to startup'
+  ansible.builtin.pause:
+    minutes: 1
+
+- name: 'Download the argocd binary'
+  ansible.builtin.get_url:
+    url: 'https://github.com/argoproj/argo-cd/releases/download/v2.10.17/argocd-linux-amd64'
+    dest: '/usr/bin/argocd'
+    mode: '+x'
+    validate_certs: false
+  become: true
+
+- name: 'Set context'
+  ansible.builtin.shell: "kubectl config set-context --current --namespace=argocd"
+  register: _context
+  changed_when: false
+
+- name: 'Patch the argocd service to use NodePort'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'
+    executable: /bin/bash
+  changed_when: false
+
+- name: 'Get the password for the admin account'
+  ansible.builtin.shell: "argocd admin initial-password -n argocd | head -1"
+  changed_when: false
+  register: _argocd_pw
+
+- name: 'Get the NodePort assigned'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl get service argocd-server -n argocd -o yaml | grep nodePort | sed -n '2 p' | awk '{ print $2 }'
+    executable: /bin/bash
+  register: _argocd_node_port
+  changed_when: false
+
+- name: 'Get the node that is running the API server'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl describe pods -n argocd  | grep Node: | awk '{ print $2 }' | cut -d '/' -f 2 | head -1
+    executable: /bin/bash
+  register: _argocd_node_ip
+  changed_when: false
+
+- name: 'Login to the argocd API'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      argocd login {{ _argocd_node_ip.stdout }}:{{ _argocd_node_port.stdout }} --insecure --username admin --password {{ _argocd_pw.stdout }}
+    executable: /bin/bash
+  changed_when: false
+
+- name: 'Get the context name'
+  ansible.builtin.shell: "kubectl config get-contexts -o name"
+  changed_when: false
+  register: _context_name
+
+- name: 'Add the argocd cluster to the context'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      argocd cluster add {{ _context_name.stdout }} -y
+    executable: /bin/bash
+  changed_when: false
+
+- name: 'Pause for 30s to allow cluster pods to come online'
+  ansible.builtin.pause:
+    seconds: 30
+
+- debug:
+    msg:
+    - "You can now access the argocd cluster from the Windows 10 Jumpbox at https://{{ _argocd_node_ip.stdout }}:{{ _argocd_node_port.stdout }}"
+    - "USERNAME: admin"
+    - "PASSWORD: {{ _argocd_pw.stdout }}"
+...

@@ -1,0 +1,66 @@
+---
+- name: 'Copy over the manifest files'
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "./{{ item }}"
+    owner: "{{ svc_acct_name}}"
+    group: "{{ svc_acct_name}}"
+    mode: '0640'
+  loop:
+    - '0elastic-namespace.yaml'
+    - '1storageclass.yaml'
+    - '2persistentvolume.yaml'
+    - '3persistentvolumeclaim.yaml'
+    - '4crds.yaml'
+    - '5operator.yaml'
+    - '6quickstart.yaml'
+    - '7service.yaml'
+
+- name: 'Apply the manifests'
+  ansible.builtin.shell: "kubectl apply -f {{ item }}"
+  changed_when: false
+  loop:
+    - '0elastic-namespace.yaml'
+    - '1storageclass.yaml'
+    - '2persistentvolume.yaml'
+    - '3persistentvolumeclaim.yaml'
+    - '4crds.yaml'
+    - '5operator.yaml'
+    - '6quickstart.yaml'
+    - '7service.yaml'
+
+- name: 'Pause for 2 minutes to wait for pods to start'
+  ansible.builtin.pause:
+    minutes: '2'
+
+- name: 'Get Pods'
+  ansible.builtin.shell: "kubectl get pods -n elastic-system"
+  changed_when: false
+  register: _shell_results
+
+- name: 'Show output of Pods'
+  ansible.builtin.debug:
+    var: _shell_results.stdout
+
+- name: 'Verify Pods are Ready'
+  ansible.builtin.assert:
+    that: "'Running' in _shell_results.stdout"
+    fail_msg: "Pods are Showing Not Ready"
+    success_msg: "Pods are running"
+
+- name: 'Query the secret that contains the password'
+  ansible.builtin.shell: "kubectl get secret quickstart-es-elastic-user -n elastic-system -o go-template='{{ '{{' }} .data.elastic | base64decode {{ '}}' }}'"
+  register: _secret_results
+  changed_when: false
+
+- name: 'Get the node hosting the Elasticsearch pods'
+  ansible.builtin.shell: "kubectl describe pods elastic-operator-0 -n elastic-system | grep Node: | awk '{ print $2 }' | cut -d '/' -f 2"
+  changed_when: false
+  register: _elastic_node
+
+- ansible.builtin.debug:
+    msg:
+      - "ElasticSearch API endpoint available at: https://{{ _elastic_node.stdout }}:31988"
+      - "Username: elastic"
+      - "PASSWORD:  {{ _secret_results.stdout }}"
+...

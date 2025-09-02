@@ -1,0 +1,12 @@
+---
+_p: ''
+svc_acct_name: 'ubuntu'
+kubernetes_version_full: '1.30.5-1.1'
+kubernetes_version_short: '1.30'
+kubernetes_version: '1.30.5'
+rancher_version: '2.9.2'
+cert_manager_version: '1.15.3'
+elastic_search_version: '8.15.0'
+elastic_search_num_nodes: '1'
+# admin_passwd: ""
+# resource_group: 'test'
