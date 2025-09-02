@@ -1,24 +1,12 @@
 ---
-# temporary
-_server_cert_arn: "arn:aws:acm:us-east-2:014420964653:certificate/abcd03cd-c42f-4538-9acd-a06d4a5fe529"
-_client_cert_arn: "arn:aws:acm:us-east-2:014420964653:certificate/5d1558f4-e843-4ea0-b9c2-9682d59a1d9f"
-_account_num: "014420964653"
-# temporary
 _p: ''
-ansible_ssh_private_key_file: ~/.ssh/KubernetesKeyPair.pem
 svc_acct_name: 'ubuntu'
 kubernetes_version_full: '1.30.5-1.1'
 kubernetes_version_short: '1.30'
 kubernetes_version: '1.30.5'
 rancher_version: '2.9.2'
 cert_manager_version: '1.15.3'
-cpn_proxy: 'localhost:2224'
-node1_proxy: 'localhost:2226'
-node2_proxy: 'localhost:2227'
-node3_proxy: 'localhost:2225'
 elastic_search_version: '8.15.0'
 elastic_search_num_nodes: '1'
-admin_passwd: ""
-resource_group: 'test'
-#_join_command: "kubeadm join 10.0.0.5:6443 --token 7u052a.oxnwqr2jqf7z50yh --discovery-token-ca-cert-hash sha256:71944ea2c2b71dfe97f687b7bf7438eab4db4317063ed30f8e91e271d9c027e8"
-...
+# admin_passwd: ""
+# resource_group: 'test'
