@@ -6,17 +6,17 @@
       "tag:Name": c1-cp1
   register: _c1_cp1_info
 
-- name: 'Get public dns name of c1-cp1'
-  ansible.builtin.set_fact:
-    c1_cp1_name: "{{ _c1_cp1_info.instances[0].public_dns_name }}"
+# - name: 'Get public dns name of c1-cp1'
+#   ansible.builtin.set_fact:
+#     c1_cp1_name: "{{ _c1_cp1_info.instances[0].public_dns_name }}"
 
 - name: 'Get private IP of c1-cp1'
   ansible.builtin.set_fact:
     c1_cp1_private_ip: "{{ _c1_cp1_info.instances[0].private_ip_address }}"
 
-- name: 'Get public IP of c1-cp1'
-  ansible.builtin.set_fact:
-    c1_cp1_public_ip: "{{ _c1_cp1_info.instances[0].public_ip_address }}"
+# - name: 'Get public IP of c1-cp1'
+#   ansible.builtin.set_fact:
+#     c1_cp1_public_ip: "{{ _c1_cp1_info.instances[0].public_ip_address }}"
 
 - name: 'Get info for c1-node1'
   amazon.aws.ec2_instance_info:
@@ -25,17 +25,17 @@
       "tag:Name": c1-node1
   register: _c1_node1_info
 
-- name: 'Get public dns name of c1-node1'
-  ansible.builtin.set_fact:
-    c1_node1_name: "{{ _c1_node1_info.instances[0].public_dns_name }}"
+# - name: 'Get public dns name of c1-node1'
+#   ansible.builtin.set_fact:
+#     c1_node1_name: "{{ _c1_node1_info.instances[0].public_dns_name }}"
 
 - name: 'Get private IP of c1-node1'
   ansible.builtin.set_fact:
     c1_node1_private_ip: "{{ _c1_node1_info.instances[0].private_ip_address }}"
 
-- name: 'Get public IP of c1-node1'
-  ansible.builtin.set_fact:
-    c1_node1_public_ip: "{{ _c1_node1_info.instances[0].public_ip_address }}"
+# - name: 'Get public IP of c1-node1'
+#   ansible.builtin.set_fact:
+#     c1_node1_public_ip: "{{ _c1_node1_info.instances[0].public_ip_address }}"
 
 - name: 'Get info for c1-node2'
   amazon.aws.ec2_instance_info:
@@ -44,17 +44,17 @@
       "tag:Name": c1-node2
   register: _c1_node2_info
 
-- name: 'Get public dns name of c1-node2'
-  ansible.builtin.set_fact:
-    c1_node2_name: "{{ _c1_node2_info.instances[0].public_dns_name }}"
+# - name: 'Get public dns name of c1-node2'
+#   ansible.builtin.set_fact:
+#     c1_node2_name: "{{ _c1_node2_info.instances[0].public_dns_name }}"
 
 - name: 'Get private IP of c1-node2'
   ansible.builtin.set_fact:
     c1_node2_private_ip: "{{ _c1_node2_info.instances[0].private_ip_address }}"
 
-- name: 'Get public IP of c1-node2'
-  ansible.builtin.set_fact:
-    c1_node2_public_ip: "{{ _c1_node2_info.instances[0].public_ip_address }}"
+# - name: 'Get public IP of c1-node2'
+#   ansible.builtin.set_fact:
+#     c1_node2_public_ip: "{{ _c1_node2_info.instances[0].public_ip_address }}"
 
 - name: 'Get info for c1-node3'
   amazon.aws.ec2_instance_info:
@@ -63,15 +63,15 @@
       "tag:Name": c1-node3
   register: _c1_node3_info
 
-- name: 'Get public dns name of c1-node3'
-  ansible.builtin.set_fact:
-    c1_node3_name: "{{ _c1_node3_info.instances[0].public_dns_name }}"
+# - name: 'Get public dns name of c1-node3'
+#   ansible.builtin.set_fact:
+#     c1_node3_name: "{{ _c1_node3_info.instances[0].public_dns_name }}"
 
 - name: 'Get private IP of c1-node3'
   ansible.builtin.set_fact:
     c1_node3_private_ip: "{{ _c1_node3_info.instances[0].private_ip_address }}"
 
-- name: 'Get public IP of c1-node3'
-  ansible.builtin.set_fact:
-    c1_node3_public_ip: "{{ _c1_node3_info.instances[0].public_ip_address }}"
+# - name: 'Get public IP of c1-node3'
+#   ansible.builtin.set_fact:
+#     c1_node3_public_ip: "{{ _c1_node3_info.instances[0].public_ip_address }}"
 ...

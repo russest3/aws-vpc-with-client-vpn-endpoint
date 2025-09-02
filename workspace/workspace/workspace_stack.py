@@ -1,6 +1,3 @@
-## NOT GOING TO BE ABLE TO TROUBLESHOOT THIS WITHOUT CLOUDWATCH WORKING!!!
-
-
 from aws_cdk import (
     aws_s3 as s3,
     aws_ssm as ssm,
@@ -24,8 +21,8 @@ class WorkspaceStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        server_cert_arn = "arn:aws:acm:us-east-2:014420964653:certificate/2d20368f-ce03-42b7-88f4-e412dc31db75"
-        client_cert_arn = "arn:aws:acm:us-east-2:014420964653:certificate/0588dba4-3d72-4cf8-9cca-c1b96f93cdad"
+        server_cert_arn = "arn:aws:acm:us-east-2:014420964653:certificate/60c3d9a4-b58d-41a6-805d-16a6c7e63239"
+        client_cert_arn = "arn:aws:acm:us-east-2:014420964653:certificate/3ac5cdf6-bba5-4e80-a86d-1537208250b4"
 
         vpc = ec2.Vpc(self, "Vpc",
             max_azs=2,
@@ -60,6 +57,31 @@ class WorkspaceStack(Stack):
                 iam.ManagedPolicy.from_aws_managed_policy_name(i)
             )
 
+        vpn_sg = ec2.SecurityGroup(
+            self,
+            "VPNsg",
+            vpc=vpc,
+            description="VPN Security Group",
+            allow_all_outbound=True,
+        )
+
+        vpn_sg.add_ingress_rule(
+            connection=ec2.Port.all_traffic(),
+            peer=vpn_sg,
+        )
+
+        # vpn_sg.add_ingress_rule(
+        #     peer=ec2.Peer.any_ipv4(),
+        #     connection=ec2.Port.tcp(22),
+        #     description="Allow SSH access from anywhere"
+        # )
+
+        # vpn_sg.add_ingress_rule(
+        #     peer=ec2.Peer.any_ipv4(),
+        #     connection=ec2.Port.tcp(443),
+        #     description="Allow SSH access from anywhere"
+        # )
+
         sg = ec2.SecurityGroup(
             self,
             "Ec2Sg",
@@ -69,10 +91,26 @@ class WorkspaceStack(Stack):
         )
 
         sg.add_ingress_rule(
-            peer=ec2.Peer.any_ipv4(),
-            connection=ec2.Port.tcp(22),
-            description="Allow SSH access from anywhere"
+            connection=ec2.Port.all_traffic(),
+            peer=sg,
         )
+
+        sg.add_ingress_rule(
+            connection=ec2.Port.all_traffic(),
+            peer=vpn_sg,
+        )
+
+        # sg.add_ingress_rule(
+        #     peer=ec2.Peer.any_ipv4(),
+        #     connection=ec2.Port.tcp(22),
+        #     description="Allow SSH access from anywhere"
+        # )
+
+        # sg.add_ingress_rule(
+        #     peer=ec2.Peer.any_ipv4(),
+        #     connection=ec2.Port.tcp(6443),
+        #     description="Allow SSH access from anywhere"
+        # )
 
         ubuntu_ami = ec2.MachineImage.lookup(
             name="*ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server*",
@@ -89,6 +127,7 @@ class WorkspaceStack(Stack):
 
         c1_cp1 = ec2.Instance(self, "ControlNode",
             vpc=vpc,
+            instance_name="c1-cp1",
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
             machine_image=ubuntu_ami,
@@ -107,11 +146,13 @@ class WorkspaceStack(Stack):
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami,            
+            machine_image=ubuntu_ami,
+            instance_name="c1-node1",
             security_group=sg,
             role=ssm_role,
             user_data=ec2.UserData.custom(c1_node1_script),
-            user_data_causes_replacement=True
+            user_data_causes_replacement=True,
+            key_pair=keyPair,
         )
 
         with open('workspace/c1-node2.sh', 'r') as f:
@@ -121,12 +162,14 @@ class WorkspaceStack(Stack):
         c1_node2 = ec2.Instance(self, "WorkerNode2",
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
+            instance_name="c1-node2",
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
             machine_image=ubuntu_ami,            
             security_group=sg,
             role=ssm_role,
             user_data=ec2.UserData.custom(c1_node2_script),
-            user_data_causes_replacement=True
+            user_data_causes_replacement=True,
+            key_pair=keyPair,
         )
 
         with open('workspace/c1-node3.sh', 'r') as f:
@@ -137,39 +180,14 @@ class WorkspaceStack(Stack):
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami,            
+            machine_image=ubuntu_ami, 
+            instance_name="c1-node3",
             security_group=sg,
             role=ssm_role,
             user_data=ec2.UserData.custom(c1_node3_script),
-            user_data_causes_replacement=True
+            user_data_causes_replacement=True,
+            key_pair=keyPair,
         )
-
-        vpn_sg = ec2.SecurityGroup(
-            self,
-            "VPNsg",
-            vpc=vpc,
-            description="VPN Security Group",
-            allow_all_outbound=True,
-        )
-
-        # Allow VPN clients to access resources in the VPC
-        vpn_sg.add_ingress_rule(
-            connection = ec2.Peer.ipv4("10.100.0.0/22"),  # VPN client CIDR
-            peer=vpn_sg,
-            # connection = ec2.Port.all_traffic(),
-        )
-
-        # vpn_sg.add_ingress_rule(
-        #     peer=ec2.Peer.any_ipv4(),
-        #     connection=ec2.Port.tcp(22),
-        #     description="Allow SSH access from anywhere"
-        # )
-
-        # vpn_sg.add_ingress_rule(
-        #     peer=ec2.Peer.any_ipv4(),
-        #     connection=ec2.Port.tcp(443),
-        #     description="Allow SSH access from anywhere"
-        # )
 
         log_group = logs.LogGroup(self, "ClientVPNlogGroup",
             log_group_name="ClientVPNlogGroup",

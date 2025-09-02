@@ -6,39 +6,54 @@
 - AWS CLI installed
 - Run `aws configure` to configure access keys
 - AWS Session Manager installed
-- openvpn3 installed
+- openvpn installed
 
 ## Session Manager
 
 ```
 $ curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
 $ sudo dpkg -i session-manager-plugin.deb
-
 ```
 
 ## VPN Access
 
-Generate self signed certificates using easy-rsa.
+Generate self signed certificates using easy-rsa, and import into AWS Certificate Manager
 
 ```
-sudo apt install easy-rsa -y
-sudo su -
-./easyrsa init-pki
+git clone https://github.com/OpenVPN/easy-rsa.git
 ./easyrsa build-ca nopass
-./easyrsa build-key-server server.example.com
-./easyrsa build-key client
+cd easy-rsa/easyrsa3
+./easyrsa --san=DNS:server build-server-full server nopass
+./easyrsa build-client-full client.example.com nopass
+aws acm import-certificate --certificate fileb://server/server.crt --private-key fileb://server/server.key --certificate-chain fileb://ca/ca.crt
+aws acm import-certificate --certificate fileb://client/client.crt --private-key fileb://client/client.key --certificate-chain fileb://ca/ca.crt
 ```
 
-Create Certificates in ACM and record their ARNs.  Update lines 24,25 in the workspace_stack.py file
+Update lines 24,25 in the workspace_stack.py file with the correct Cert ARNs
 
-After stack is created use openvpn3 to connect to the vpn client endpoint:
+After stack is created use openvpn to connect to the vpn client endpoint:
+
+In the AWS UI go to VPC and to Client VPN Endpoint.  Click to download the configuration
+
+Edit this configuration and add the following:
 
 ```
-openvpn3 session-start --config config.ovpn
+<cert>
+! -- Paste in the `client.example.com` certificate created earlier
+</cert>
+
+<key>
+! -- Paste in the `client.key` key created earlier
+</key>
+```
+
+```
+openvpn --config config.ovpn &
+ssh ubuntu@node -i key.pem
 ```
 
 
-## Procedure
+## AWS CDK Procedure
 
 Create a virtualenv on MacOS and Linux:
 
@@ -65,10 +80,16 @@ At this point you can now synthesize the CloudFormation template for this code.
 $ cdk synth
 ```
 
-Deploy the code with:
+Deploy the IaaC code with:
 
 ```
 $ cdk deploy
+```
+
+After the infrastructure is built out run the Ansible Playbook to configure the cluster and install additional components such as Kubernetes Dashboard, ElasticSearch, Rancher, or ArgoCD CI/CD pipeline.
+
+```
+ansible-playbook automated_install.yml -i inventory
 ```
 
 ## Useful commands

@@ -1,35 +1,35 @@
 ---
-# - name: 'Add kubernetes-dashboard repository'
-#   ansible.builtin.shell:
-#     cmd: |
-#       set -o pipefail
-#       helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
-#     executable: /bin/bash
-#   changed_when: false
+- name: 'Add kubernetes-dashboard repository'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
+    executable: /bin/bash
+  changed_when: false
 
-# - name: 'Install Dashboard UI'
-#   ansible.builtin.shell:
-#     cmd: |
-#       set -o pipefail
-#       helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
-#     executable: /bin/bash
-#   changed_when: false
+- name: 'Install Dashboard UI'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
+    executable: /bin/bash
+  changed_when: false
 
-# - name: 'Pause 30 seconds for pods to start'
-#   ansible.builtin.pause:
-#     seconds: 30
+- name: 'Pause 30 seconds for pods to start'
+  ansible.builtin.pause:
+    seconds: 30
 
-# - name: 'Setup Port Forwarding'
-#   ansible.builtin.shell:
-#     cmd: |
-#       set -o pipefail
-#       kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443 &
-#     executable: /bin/bash
-#   changed_when: false
+- name: 'Setup Port Forwarding'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443 &
+    executable: /bin/bash
+  changed_when: false
 
-# - name: 'Sleep 1 minute before updating dashboard-kong-proxy'
-#   ansible.builtin.pause:
-#     minutes: 1
+- name: 'Sleep 1 minute before updating dashboard-kong-proxy'
+  ansible.builtin.pause:
+    minutes: 1
 
 - name: 'Copy over the manifest files'
   ansible.builtin.copy:

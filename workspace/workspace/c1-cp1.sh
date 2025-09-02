@@ -32,10 +32,10 @@ chown ubuntu:ubuntu /home/ubuntu/.kube/config
 sudo su - ubuntu
 cd /home/ubuntu
 wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-kubectl create -f /home/ubuntu/kube-flannel.yml
+kubectl apply -f /home/ubuntu/kube-flannel.yml
 sleep 60
 wget https://get.helm.sh/helm-v3.15.3-linux-amd64.tar.gz
 tar -xvzf helm-v3.15.3-linux-amd64.tar.gz
-cp helm-v3.15.3-linux-amd64/linux-amd64/helm /usr/bin/helm
+cp linux-amd64/helm /usr/bin/helm
 kubeadm token create --print-join-command
 reboot
