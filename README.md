@@ -1,4 +1,4 @@
-# AWS VPC, Public Subnet, Private Subnet, NAT Gateway, Internet Gateway, Auto-Scaling Group, Systems Manager Access, ALB, Apache, MySQL, PHP
+# Build out a Kubernetes Cluster in an AWS VPC with Client VPN Endpoint using Cloud Development Kit!
 
 ## Architecture
 
@@ -52,7 +52,7 @@ Edit this configuration and add the following:
 ```
 
 ```
-openvpn --config config.ovpn &
+sudo openvpn --config config.ovpn &
 ssh ubuntu@node -i key.pem
 ```
 
@@ -93,7 +93,7 @@ $ cdk deploy
 After the infrastructure is built out run the Ansible Playbook to configure the cluster and install additional components such as Kubernetes Dashboard, ElasticSearch, Rancher, or ArgoCD CI/CD pipeline.
 
 ```
-ansible-playbook automated_install.yml -i inventory
+ansible-playbook automated_install.yml -i inventory -v
 ```
 
 ## Useful commands

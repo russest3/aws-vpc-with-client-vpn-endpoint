@@ -68,6 +68,6 @@
 
 - ansible.builtin.debug:
     msg:
-      - "Copy the following token to the Azure jumpbox clipboard to login to the cluster at https://{{ _dashboard_node.stdout }}:31987"
+      - "Copy the following token and login to the cluster at https://{{ _dashboard_node.stdout }}:31987"
       - "TOKEN:  {{ _token.stdout }}"
 ...

@@ -67,25 +67,26 @@
   environment:
     ANSIBLE_HOST_KEY_CHECKING: false
 
-  pre_tasks:
-    - ansible.builtin.stat:
-        path: "/var/tmp/.baseclusterinstall"
-      register: _file_exist
-
-  roles:
-    - role: control-plane-node
-      when: _file_exist.stat.exists == false
-
   vars:
     ansible_python_interpreter: '/usr/bin/python3'
 
-  post_tasks:
-    - name: 'Mark base cluster install complete' 
-      ansible.builtin.copy:
-       content: "complete"
-       dest: "/var/tmp/.baseclusterinstall"
-       force: true
-      become: true
+  tasks:
+    - name: 'Update /etc/hosts'
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          {{ hostvars['localhost']['c1_cp1_private_ip'] }} c1-cp1.example.com c1-cp1
+          {{ hostvars['localhost']['c1_node1_private_ip'] }} c1-node1.example.com c1-node1
+          {{ hostvars['localhost']['c1_node2_private_ip'] }} c1-node2.example.com c1-node2
+          {{ hostvars['localhost']['c1_node3_private_ip'] }} c1-node3.example.com c1-node3
+
+    - name: 'Output the join command to use in the following tasks to join nodes to the cluster'
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          kubeadm token create --print-join-command
+        executable: /bin/bash
+      changed_when: false
 
 - name: 'Configure c1-node1'
   hosts: c1-node1
@@ -99,11 +100,6 @@
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
 
-  pre_tasks:
-    - ansible.builtin.stat:
-        path: "/var/tmp/.wninstall"
-      register: _file_exist
-
   tasks:
     - name: 'Update /etc/hosts'
       ansible.builtin.blockinfile:
@@ -128,12 +124,6 @@
           {{ _join_command.user_input }}
         executable: /bin/bash
       changed_when: false
-
-    - ansible.builtin.copy:
-        content: "complete"
-        dest: "/var/tmp/.wninstall"
-        force: true
-      become: true
 
 - name: 'Configure c1-node2'
   hosts: c1-node2
@@ -147,11 +137,6 @@
   vars:
     ansible_python_interpreter: '/usr/bin/python3'
 
-  pre_tasks:
-    - ansible.builtin.stat:
-        path: "/var/tmp/.wninstall"
-      register: _file_exist
-
   tasks:
     - name: 'Update /etc/hosts'
       ansible.builtin.blockinfile:
@@ -176,12 +161,6 @@
           {{ _join_command.user_input }}
         executable: /bin/bash
       changed_when: false
-
-    - ansible.builtin.copy:
-        content: "complete"
-        dest: "/var/tmp/.wninstall"
-        force: true
-      become: true
 
 - name: 'Configure c1-node3'
   hosts: c1-node3
@@ -195,11 +174,6 @@
   vars:
     ansible_python_interpreter: '/usr/bin/python3'
 
-  pre_tasks:
-    - ansible.builtin.stat:
-        path: "/var/tmp/.wninstall"
-      register: _file_exist
-
   tasks:
     - name: 'Update /etc/hosts'
       ansible.builtin.blockinfile:
@@ -224,12 +198,6 @@
           {{ _join_command.user_input }}
         executable: /bin/bash
       changed_when: false
-
-    - ansible.builtin.copy:
-        content: "complete"
-        dest: "/var/tmp/.wninstall"
-        force: true
-      become: true
 
 - name: 'Beginning installation of Kubernetes Dashboard'
   hosts: c1-cp1

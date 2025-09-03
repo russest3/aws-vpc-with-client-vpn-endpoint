@@ -201,14 +201,6 @@ class WorkspaceStack(Stack):
             log_group=log_group,
         )
 
-        # connection_log_options_property = ec2.CfnClientVpnEndpoint.ConnectionLogOptionsProperty(
-        #     enabled=True,
-
-        #     # the properties below are optional
-        #     cloudwatch_log_group="ClientVPNlogGroup",
-        #     cloudwatch_log_stream="cloudwatchLogStream"
-        # )
-
         client_vpn_endpoint = ec2.CfnClientVpnEndpoint(self, "ClientVpnEndpoint",
             authentication_options=[{
                 "type": "certificate-authentication",
