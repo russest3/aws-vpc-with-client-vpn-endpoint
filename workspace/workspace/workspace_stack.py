@@ -1,14 +1,18 @@
 from aws_cdk import (
     aws_s3 as s3,
     aws_ssm as ssm,
-    aws_rds as rds,
+    # aws_rds as rds,
+    aws_sns as sns,
     aws_logs as logs,
     aws_iam as iam,
-    aws_elasticloadbalancingv2 as elbv2,
+    aws_cloudwatch as cw,
+    aws_cloudwatch_actions as cw_actions,
+    # aws_elasticloadbalancingv2 as elbv2,
     aws_ec2 as ec2,
-    aws_autoscaling as asg,
-    aws_route53 as route53,
-    aws_s3_deployment as s3deploy,
+    # aws_autoscaling as asg,
+    aws_s3_assets as s3_assets,
+    # aws_route53 as route53,
+    # aws_s3_deployment as s3deploy,
     Stack,
     CfnOutput,
     Duration,
@@ -51,7 +55,7 @@ class WorkspaceStack(Stack):
             assumed_by=iam.ServicePrincipal("ec2.amazonaws.com"),
             role_name="Ec2Role"
         )
-        
+
         for i in ["AmazonSSMManagedInstanceCore", "CloudWatchLogsFullAccess"]:
             ssm_role.add_managed_policy(
                 iam.ManagedPolicy.from_aws_managed_policy_name(i)
@@ -69,18 +73,6 @@ class WorkspaceStack(Stack):
             connection=ec2.Port.all_traffic(),
             peer=vpn_sg,
         )
-
-        # vpn_sg.add_ingress_rule(
-        #     peer=ec2.Peer.any_ipv4(),
-        #     connection=ec2.Port.tcp(22),
-        #     description="Allow SSH access from anywhere"
-        # )
-
-        # vpn_sg.add_ingress_rule(
-        #     peer=ec2.Peer.any_ipv4(),
-        #     connection=ec2.Port.tcp(443),
-        #     description="Allow SSH access from anywhere"
-        # )
 
         sg = ec2.SecurityGroup(
             self,
@@ -100,26 +92,7 @@ class WorkspaceStack(Stack):
             peer=vpn_sg,
         )
 
-        # sg.add_ingress_rule(
-        #     peer=ec2.Peer.any_ipv4(),
-        #     connection=ec2.Port.tcp(22),
-        #     description="Allow SSH access from anywhere"
-        # )
-
-        # sg.add_ingress_rule(
-        #     peer=ec2.Peer.any_ipv4(),
-        #     connection=ec2.Port.tcp(6443),
-        #     description="Allow SSH access from anywhere"
-        # )
-
-        ubuntu_ami = ec2.MachineImage.lookup(
-            name="*ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server*",
-            owners=["099720109477"],  # Canonical's owner ID
-            filters={
-                "root-device-type": ["ebs"],
-                "virtualization-type": ["hvm"]
-            }
-        )
+        ami_id = "ami-02b0364e5e93ec13d"
 
         with open('workspace/c1-cp1.sh', 'r') as f:
             c1_cp1_script = f.read()
@@ -129,8 +102,9 @@ class WorkspaceStack(Stack):
             vpc=vpc,
             instance_name="c1-cp1",
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami,
+            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+            # machine_image=ubuntu_ami,
+            machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),
             user_data=ec2.UserData.custom(c1_cp1_script),
             security_group=sg,
             role=ssm_role,
@@ -145,8 +119,8 @@ class WorkspaceStack(Stack):
         c1_node1 = ec2.Instance(self, "WorkerNode1",
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami,
+            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+            machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),
             instance_name="c1-node1",
             security_group=sg,
             role=ssm_role,
@@ -163,8 +137,8 @@ class WorkspaceStack(Stack):
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
             instance_name="c1-node2",
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami,            
+            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+            machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),         
             security_group=sg,
             role=ssm_role,
             user_data=ec2.UserData.custom(c1_node2_script),
@@ -179,8 +153,8 @@ class WorkspaceStack(Stack):
         c1_node3 = ec2.Instance(self, "WorkerNode3",
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ubuntu_ami, 
+            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+            machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),
             instance_name="c1-node3",
             security_group=sg,
             role=ssm_role,
@@ -199,6 +173,45 @@ class WorkspaceStack(Stack):
             self,
             "ClientVpnLogStream",
             log_group=log_group,
+        )
+
+        cpu_credit_usage_metric = cw.Metric(
+            metric_name="CPUCreditUsage",
+            namespace="AWS/EC2",
+            dimensions_map={"InstanceId": c1_cp1.instance_id},
+            period=Duration.minutes(5),
+            statistic="Average"
+        )
+
+        alarm = cw.Alarm(self, "BurstAlarm",
+            metric=cpu_credit_usage_metric,
+            threshold=10,  # The value that triggers the alarm
+            evaluation_periods=3,  # Number of periods to evaluate
+            datapoints_to_alarm=2, # Number of datapoints within evaluation_periods that must be breaching
+            comparison_operator=cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+            alarm_description="Alarm for CPUCreditUsage",
+            actions_enabled=True,
+        )
+
+        email_list = sns.Topic(self, "EmailList",
+            topic_name="EmailList",
+            display_name="EmailList",
+        )
+
+        alarm.add_alarm_action(cw_actions.SnsAction(topic=email_list))
+
+        email_list.apply_removal_policy(RemovalPolicy.DESTROY)
+
+        cw_to_sns_role = iam.Role(self, "CW2SNSrole",
+            assumed_by=iam.ServicePrincipal("cloudwatch.amazonaws.com")
+        )
+
+        email_list.add_to_resource_policy(
+            iam.PolicyStatement(
+                actions=["sns:Publish"],
+                principals=[cw_to_sns_role],
+                resources=[email_list.topic_arn]
+            )
         )
 
         client_vpn_endpoint = ec2.CfnClientVpnEndpoint(self, "ClientVpnEndpoint",
@@ -236,6 +249,20 @@ class WorkspaceStack(Stack):
             authorize_all_groups=True,
             description="Allow access to all networks"
         )
+
+
+
+############ Optional ###############################
+        # ubuntu_ami = ec2.MachineImage.lookup(
+        #     name="*ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server*",
+        #     owners=["099720109477"],  # Canonical's owner ID
+        #     filters={
+        #         "root-device-type": ["ebs"],
+        #         "virtualization-type": ["hvm"]
+        #     }
+        # )
+
+        # local_s3_asset.grant_read(c1_cp1.role)
 
         # vpc.add_interface_endpoint( "SSMvpcEndpoint",
         #     subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),

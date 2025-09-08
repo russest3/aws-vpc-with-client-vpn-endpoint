@@ -230,63 +230,63 @@
         force: true
       become: true
 
-    - ansible.builtin.pause:
-        prompt: "Do you wish to install ElasticSearch into the Kubernetes cluster? (Y/N)"
-      register: _install_elastic
+    # - ansible.builtin.pause:
+    #     prompt: "Do you wish to install ElasticSearch into the Kubernetes cluster? (Y/N)"
+    #   register: _install_elastic
 
-- name: 'Beginning installation of ElasticSearch'
-  hosts: c1-cp1
-  become: false
-  gather_facts: true
-  remote_user: ubuntu
+# - name: 'Beginning installation of ElasticSearch'
+#   hosts: c1-cp1
+#   become: false
+#   gather_facts: true
+#   remote_user: ubuntu
 
-  vars_files:
-    - common_vars.yml
+#   vars_files:
+#     - common_vars.yml
 
-  vars:
-    ansible_python_interpreter: '/usr/bin/python3'
+#   vars:
+#     ansible_python_interpreter: '/usr/bin/python3'
 
-  roles:
-    - role: install-elastic
-      when: _install_elastic.user_input | lower == 'y'
+#   roles:
+#     - role: install-elastic
+#       when: _install_elastic.user_input | lower == 'y'
 
-  post_tasks:
-    - ansible.builtin.copy:
-        content: "complete"
-        dest: "/home/{{ svc_acct_name }}/.elasticinstall"
-        owner: "{{ svc_acct_name }}"
-        group: "{{ svc_acct_name }}"
-        force: true
-      when: _install_elastic.user_input | lower == 'y'
+#   post_tasks:
+#     - ansible.builtin.copy:
+#         content: "complete"
+#         dest: "/home/{{ svc_acct_name }}/.elasticinstall"
+#         owner: "{{ svc_acct_name }}"
+#         group: "{{ svc_acct_name }}"
+#         force: true
+#       when: _install_elastic.user_input | lower == 'y'
 
-    - ansible.builtin.pause:
-        prompt: "Do you wish to install the ArgoCD CI/CD Pipeline into the Kubernetes cluster? (Y/N)"
-      register: _install_cicd
+#     - ansible.builtin.pause:
+#         prompt: "Do you wish to install the ArgoCD CI/CD Pipeline into the Kubernetes cluster? (Y/N)"
+#       register: _install_cicd
 
-- name: 'Beginning installation of CI/CD Pipeline'
-  hosts: c1-cp1
-  become: false
-  gather_facts: true
-  remote_user: ubuntu
+# - name: 'Beginning installation of CI/CD Pipeline'
+#   hosts: c1-cp1
+#   become: false
+#   gather_facts: true
+#   remote_user: ubuntu
 
-  vars:
-    ansible_python_interpreter: '/usr/bin/python3'
+#   vars:
+#     ansible_python_interpreter: '/usr/bin/python3'
 
-  vars_files:
-    - common_vars.yml
+#   vars_files:
+#     - common_vars.yml
 
-  roles:
-    - role: cicd-pipeline
-      when: _install_cicd.user_input | lower == 'y'
+#   roles:
+#     - role: cicd-pipeline
+#       when: _install_cicd.user_input | lower == 'y'
 
-  post_tasks:
-    - ansible.builtin.copy:
-        content: "complete"
-        dest: "/home/{{ svc_acct_name }}/.cicdpipelineinstall"
-        owner: "{{ svc_acct_name }}"
-        group: "{{ svc_acct_name }}"
-        force: true
-      when: _install_cicd.user_input | lower == 'y'
+#   post_tasks:
+#     - ansible.builtin.copy:
+#         content: "complete"
+#         dest: "/home/{{ svc_acct_name }}/.cicdpipelineinstall"
+#         owner: "{{ svc_acct_name }}"
+#         group: "{{ svc_acct_name }}"
+#         force: true
+#       when: _install_cicd.user_input | lower == 'y'
 
 #     - ansible.builtin.pause:
 #         prompt: "Do you wish to install Rancher Server into the Kubernetes cluster? (Y/N)"
