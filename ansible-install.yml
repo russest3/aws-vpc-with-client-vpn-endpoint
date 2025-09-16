@@ -1,0 +1,54 @@
+---
+- name: 'Beginning Ansible Automation to Build out AWS VPC'
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+
+  env:
+    AWS_ACCESS_KEY_ID: "{{ AWS_ACCESS_KEY_ID }}"
+    AWS_ACCESS_KEY: "{{ AWS_ACCESS_KEY }}"
+    AWS_REGION: "us-east-2"
+
+  tasks:
+    - name: 'Create VPC'
+      amazon.aws.ec2_vpc_net:
+        access_key: "{{ AWS_ACCESS_KEY }}"
+        secret_key: "{{ AWS_ACCESS_KEY }}"
+        cidr_block: "10.192.0.0/16"
+        name: "Vpc"
+        region: "{{ AWS_REGION }}"
+        validate_certs: false
+      register: vpc_results
+
+    - name: 'Create Public VPC Subnet'
+      amazon.aws.ec2_vpc_subnet:
+        access_key: "{{ AWS_ACCESS_KEY }}"
+        secret_key: "{{ AWS_ACCESS_KEY }}"
+        cidr: "10.192.0.0/24"
+        region: "{{ AWS_REGION }}"
+        validate_certs: false
+        vpc_id: "{{ vpc_results.vpc.id }}"
+        map_public: true
+      register: pub_subnet
+
+    - name: 'Create Private VPC Subnet'
+      amazon.aws.ec2_vpc_subnet:
+        access_key: "{{ AWS_ACCESS_KEY }}"
+        secret_key: "{{ AWS_ACCESS_KEY }}"
+        cidr: "10.192.0.0/24"
+        region: "{{ AWS_REGION }}"
+        validate_certs: false
+        vpc_id: "{{ vpc_results.vpc.id }}"
+        map_public: false
+
+    - name: 'Create NAT Gateway in Public Subnet'
+      amazon.aws.ec2_vpc_nat_gateway:
+        access_key: "{{ AWS_ACCESS_KEY }}"
+        secret_key: "{{ AWS_ACCESS_KEY }}"
+        connectivity_type: "private"
+        region: "{{ AWS_REGION }}"
+        subnet_id: "{{ pub_subnet.subnet.id }}"
+        validate_certs: false
+
+

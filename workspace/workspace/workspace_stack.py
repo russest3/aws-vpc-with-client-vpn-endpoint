@@ -1,4 +1,11 @@
+# Rewrite to use CloudFormation init scripts and init script helper functions instead of userdata
+# Add load balancer in front of cluster
+# The cfn-init call in user data script is not evaluating variables correctly
+
+# from aws_cdk.aws_cloudformation import CfnStackPolicy
+
 from aws_cdk import (
+    aws_cloudformation as cfn,
     aws_s3 as s3,
     aws_ssm as ssm,
     # aws_rds as rds,
@@ -20,6 +27,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 import os
+import json
 
 class WorkspaceStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -27,6 +35,28 @@ class WorkspaceStack(Stack):
 
         server_cert_arn = "arn:aws:acm:us-east-2:014420964653:certificate/60c3d9a4-b58d-41a6-805d-16a6c7e63239"
         client_cert_arn = "arn:aws:acm:us-east-2:014420964653:certificate/3ac5cdf6-bba5-4e80-a86d-1537208250b4"
+
+        # stack_policy_document = {
+        #     "Statement": [
+        #         {
+        #             "Effect": "Deny",
+        #             "Action": ["Update:Replace", "Update:Delete"],
+        #             "Principal": "*",
+        #             "Resource": "LogicalResourceId/MyProtectedDatabase", # Replace with your resource's logical ID
+        #             "Condition": {
+        #                 "StringEquals": {
+        #                     "aws:CalledVia": ["cloudformation.amazonaws.com"]
+        #                 }
+        #             }
+        #         }
+        #     ]
+        # }
+
+        # CfnStackPolicy(
+        #     self, "MyStackPolicy",
+        #     stack_name=self.stack_name,
+        #     stack_policy_body=json.dumps(stack_policy_document)
+        # )
 
         vpc = ec2.Vpc(self, "Vpc",
             max_azs=2,
@@ -51,13 +81,13 @@ class WorkspaceStack(Stack):
                     type=ec2.KeyPairType.RSA
                 )
         
-        ssm_role = iam.Role(self, "Ec2Role",
+        ec2_role = iam.Role(self, "Ec2Role",
             assumed_by=iam.ServicePrincipal("ec2.amazonaws.com"),
             role_name="Ec2Role"
         )
 
         for i in ["AmazonSSMManagedInstanceCore", "CloudWatchLogsFullAccess"]:
-            ssm_role.add_managed_policy(
+            ec2_role.add_managed_policy(
                 iam.ManagedPolicy.from_aws_managed_policy_name(i)
             )
 
@@ -92,29 +122,43 @@ class WorkspaceStack(Stack):
             peer=vpn_sg,
         )
 
-        ami_id = "ami-02b0364e5e93ec13d"
+        ami_id = "ami-0146e9e4109b2015a"
 
-        with open('workspace/c1-cp1.sh', 'r') as f:
-            c1_cp1_script = f.read()
-        f.close()
+        c1_cp1_user_data = ec2.UserData.for_linux()
+        c1_cp1_user_data.add_commands(
+            "kubeadm init --kubernetes-version v1.30.5 --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem",
+            "mkdir -p /home/ubuntu/.kube",
+            "chown ubuntu:ubuntu /home/ubuntu/.kube",
+            "cp /etc/kubernetes/admin.conf /home/ubuntu/.kube/config",
+            "chown ubuntu:ubuntu /home/ubuntu/.kube/config",
+            "sudo su - ubuntu",
+            "cd /home/ubuntu",
+            "wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml",
+            "kubectl apply -f /home/ubuntu/kube-flannel.yml",
+            "sleep 30",
+            "wget https://get.helm.sh/helm-v3.15.3-linux-amd64.tar.gz",
+            "tar -xvzf helm-v3.15.3-linux-amd64.tar.gz",
+            "cp linux-amd64/helm /usr/bin/helm",
+            "kubeadm token create --print-join-command",
+        )
 
         c1_cp1 = ec2.Instance(self, "ControlNode",
             vpc=vpc,
             instance_name="c1-cp1",
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-            # machine_image=ubuntu_ami,
             machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),
-            user_data=ec2.UserData.custom(c1_cp1_script),
             security_group=sg,
-            role=ssm_role,
+            role=ec2_role,
+            user_data=c1_cp1_user_data,
             user_data_causes_replacement=True,
-            key_pair=keyPair,
         )
 
-        with open('workspace/c1-node1.sh', 'r') as f:
-            c1_node1_script = f.read()
-        f.close()
+        c1_node1_user_data = ec2.UserData.for_linux()
+        c1_node1_user_data.add_commands(
+            "hostname c1-node1",
+            "echo 'c1-node1 > /etc/hostname'",
+        )
 
         c1_node1 = ec2.Instance(self, "WorkerNode1",
             vpc=vpc,
@@ -123,132 +167,131 @@ class WorkspaceStack(Stack):
             machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),
             instance_name="c1-node1",
             security_group=sg,
-            role=ssm_role,
-            user_data=ec2.UserData.custom(c1_node1_script),
+            role=ec2_role,
+            user_data=c1_node1_user_data
             user_data_causes_replacement=True,
             key_pair=keyPair,
         )
 
-        with open('workspace/c1-node2.sh', 'r') as f:
-            c1_node2_script = f.read()
-        f.close()
+        # with open('workspace/c1-node2.sh', 'r') as f:
+        #     c1_node2_script = f.read()
+        # f.close()
 
-        c1_node2 = ec2.Instance(self, "WorkerNode2",
-            vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-            instance_name="c1-node2",
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-            machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),         
-            security_group=sg,
-            role=ssm_role,
-            user_data=ec2.UserData.custom(c1_node2_script),
-            user_data_causes_replacement=True,
-            key_pair=keyPair,
-        )
+        # c1_node2 = ec2.Instance(self, "WorkerNode2",
+        #     vpc=vpc,
+        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
+        #     instance_name="c1-node2",
+        #     instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+        #     machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),         
+        #     security_group=sg,
+        #     role=ec2_role,
+        #     user_data=ec2.UserData.custom(c1_node2_script),
+        #     user_data_causes_replacement=True,
+        #     key_pair=keyPair,
+        # )
 
-        with open('workspace/c1-node3.sh', 'r') as f:
-            c1_node3_script = f.read()
-        f.close()
+        # with open('workspace/c1-node3.sh', 'r') as f:
+        #     c1_node3_script = f.read()
+        # f.close()
 
-        c1_node3 = ec2.Instance(self, "WorkerNode3",
-            vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-            machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),
-            instance_name="c1-node3",
-            security_group=sg,
-            role=ssm_role,
-            user_data=ec2.UserData.custom(c1_node3_script),
-            user_data_causes_replacement=True,
-            key_pair=keyPair,
-        )
+        # c1_node3 = ec2.Instance(self, "WorkerNode3",
+        #     vpc=vpc,
+        #     vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
+        #     instance_type=ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+        #     machine_image=ec2.MachineImage.generic_linux({"us-east-2": ami_id}),
+        #     instance_name="c1-node3",
+        #     security_group=sg,
+        #     role=ec2_role,
+        #     user_data=ec2.UserData.custom(c1_node3_script),
+        #     user_data_causes_replacement=True,
+        #     key_pair=keyPair,
+        # )
 
-        log_group = logs.LogGroup(self, "ClientVPNlogGroup",
-            log_group_name="ClientVPNlogGroup",
-            retention=logs.RetentionDays.ONE_DAY,
-            removal_policy=RemovalPolicy.DESTROY,
-        )
+        # log_group = logs.LogGroup(self, "ClientVPNlogGroup",
+        #     log_group_name="ClientVPNlogGroup",
+        #     retention=logs.RetentionDays.ONE_DAY,
+        #     removal_policy=RemovalPolicy.DESTROY,
+        # )
 
-        log_stream = logs.LogStream(
-            self,
-            "ClientVpnLogStream",
-            log_group=log_group,
-        )
+        # log_stream = logs.LogStream(
+        #     self,
+        #     "ClientVpnLogStream",
+        #     log_group=log_group,
+        # )
 
-        cpu_credit_usage_metric = cw.Metric(
-            metric_name="CPUCreditUsage",
-            namespace="AWS/EC2",
-            dimensions_map={"InstanceId": c1_cp1.instance_id},
-            period=Duration.minutes(5),
-            statistic="Average"
-        )
+        # cpu_credit_usage_metric = cw.Metric(
+        #     metric_name="CPUCreditUsage",
+        #     namespace="AWS/EC2",
+        #     dimensions_map={"InstanceId": c1_cp1.instance_id},
+        #     period=Duration.minutes(5),
+        #     statistic="Average"
+        # )
 
-        alarm = cw.Alarm(self, "BurstAlarm",
-            metric=cpu_credit_usage_metric,
-            threshold=10,  # The value that triggers the alarm
-            evaluation_periods=3,  # Number of periods to evaluate
-            datapoints_to_alarm=2, # Number of datapoints within evaluation_periods that must be breaching
-            comparison_operator=cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-            alarm_description="Alarm for CPUCreditUsage",
-            actions_enabled=True,
-        )
+        # alarm = cw.Alarm(self, "BurstAlarm",
+        #     metric=cpu_credit_usage_metric,
+        #     threshold=10,  # The value that triggers the alarm
+        #     evaluation_periods=3,  # Number of periods to evaluate
+        #     datapoints_to_alarm=2, # Number of datapoints within evaluation_periods that must be breaching
+        #     comparison_operator=cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        #     alarm_description="Alarm for CPUCreditUsage",
+        #     actions_enabled=True,
+        # )
 
-        email_list = sns.Topic(self, "EmailList",
-            topic_name="EmailList",
-            display_name="EmailList",
-        )
+        # email_list = sns.Topic(self, "EmailList",
+        #     topic_name="EmailList",
+        #     display_name="EmailList",
+        # )
 
-        alarm.add_alarm_action(cw_actions.SnsAction(topic=email_list))
+        # alarm.add_alarm_action(cw_actions.SnsAction(topic=email_list))
 
-        email_list.apply_removal_policy(RemovalPolicy.DESTROY)
+        # email_list.apply_removal_policy(RemovalPolicy.DESTROY)
 
-        cw_to_sns_role = iam.Role(self, "CW2SNSrole",
-            assumed_by=iam.ServicePrincipal("cloudwatch.amazonaws.com")
-        )
+        # cw_to_sns_role = iam.Role(self, "CW2SNSrole",
+        #     assumed_by=iam.ServicePrincipal("cloudwatch.amazonaws.com")
+        # )
 
-        email_list.add_to_resource_policy(
-            iam.PolicyStatement(
-                actions=["sns:Publish"],
-                principals=[cw_to_sns_role],
-                resources=[email_list.topic_arn]
-            )
-        )
+        # email_list.add_to_resource_policy(
+        #     iam.PolicyStatement(
+        #         actions=["sns:Publish"],
+        #         principals=[cw_to_sns_role],
+        #         resources=[email_list.topic_arn]
+        #     )
+        # )
 
-        client_vpn_endpoint = ec2.CfnClientVpnEndpoint(self, "ClientVpnEndpoint",
-            authentication_options=[{
-                "type": "certificate-authentication",
-                "mutualAuthentication": {
-                    "clientRootCertificateChainArn": client_cert_arn
-                }
-            }],
-            client_cidr_block="10.100.0.0/22",
-            connection_log_options=ec2.CfnClientVpnEndpoint.ConnectionLogOptionsProperty(
-                enabled=True,
-                cloudwatch_log_group=log_group.log_group_name,
-                cloudwatch_log_stream=log_stream.log_stream_name,
-            ),
-            server_certificate_arn=server_cert_arn,
-            vpn_port=443,
-            transport_protocol="tcp",
-            description="Client VPN endpoint for secure remote access",
-            split_tunnel=True,
-            vpc_id=vpc.vpc_id,
-            dns_servers=["8.8.8.8", "8.8.4.4"],
-            security_group_ids=[vpn_sg.security_group_id],
-        )
+        # client_vpn_endpoint = ec2.CfnClientVpnEndpoint(self, "ClientVpnEndpoint",
+        #     authentication_options=[{
+        #         "type": "certificate-authentication",
+        #         "mutualAuthentication": {
+        #             "clientRootCertificateChainArn": client_cert_arn
+        #         }
+        #     }],
+        #     client_cidr_block="10.100.0.0/22",
+        #     connection_log_options=ec2.CfnClientVpnEndpoint.ConnectionLogOptionsProperty(
+        #         enabled=True,
+        #         cloudwatch_log_group=log_group.log_group_name,
+        #         cloudwatch_log_stream=log_stream.log_stream_name,
+        #     ),
+        #     server_certificate_arn=server_cert_arn,
+        #     vpn_port=443,
+        #     transport_protocol="tcp",
+        #     description="Client VPN endpoint for secure remote access",
+        #     split_tunnel=True,
+        #     vpc_id=vpc.vpc_id,
+        #     dns_servers=["8.8.8.8", "8.8.4.4"],
+        #     security_group_ids=[vpn_sg.security_group_id],
+        # )
 
-        ec2.CfnClientVpnTargetNetworkAssociation(self, "ClientVpnAssociation",
-            client_vpn_endpoint_id=client_vpn_endpoint.ref,
-            subnet_id=vpc.private_subnets[0].subnet_id
-        )
+        # ec2.CfnClientVpnTargetNetworkAssociation(self, "ClientVpnAssociation",
+        #     client_vpn_endpoint_id=client_vpn_endpoint.ref,
+        #     subnet_id=vpc.private_subnets[0].subnet_id
+        # )
 
-        ec2.CfnClientVpnAuthorizationRule(self, "ClientVpnAuthRule",
-            client_vpn_endpoint_id=client_vpn_endpoint.ref,
-            # target_network_cidr="0.0.0.0/0",
-            target_network_cidr=vpc.vpc_cidr_block,
-            authorize_all_groups=True,
-            description="Allow access to all networks"
-        )
+        # ec2.CfnClientVpnAuthorizationRule(self, "ClientVpnAuthRule",
+        #     client_vpn_endpoint_id=client_vpn_endpoint.ref,
+        #     target_network_cidr=vpc.vpc_cidr_block,
+        #     authorize_all_groups=True,
+        #     description="Allow access to all networks"
+        # )
 
 
 

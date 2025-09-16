@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb
+spec:
+  selector:
+    app: my-app # This selects pods with the label "app: my-app"
+  ports:
+    - protocol: TCP
+      port: 80       # The port the load balancer exposes
+      targetPort: 8080 # The port on the pod that the service directs traffic to
+  type: LoadBalancer
