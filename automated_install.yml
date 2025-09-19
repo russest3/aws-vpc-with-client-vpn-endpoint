@@ -55,6 +55,14 @@
           {{ c1_node2_private_ip }} c1-node2.example.com c1-node2
           {{ c1_node3_private_ip }} c1-node3.example.com c1-node3
       become: true
+
+    - name: 'Get the IP of the Load Balancer'
+      ansible.aws.elb_application_lb_info:
+      register: _elb_results
+
+    - name: 'Get kubeconfig'
+
+
     
 - hosts: c1-cp1
   become: true
@@ -79,6 +87,24 @@
           {{ hostvars['localhost']['c1_node1_private_ip'] }} c1-node1.example.com c1-node1
           {{ hostvars['localhost']['c1_node2_private_ip'] }} c1-node2.example.com c1-node2
           {{ hostvars['localhost']['c1_node3_private_ip'] }} c1-node3.example.com c1-node3
+
+    # - name: 'Apply the load balancer service'
+    #   ansible.builtin.shell:
+    #     cmd: |
+    #       set -o pipefail
+    #       kubectl apply -f lb.yml
+    #     executable: /bin/bash
+    #   changed_when: false
+    #   become: false
+
+    - name: 'Install the Kubernetes nginx Ingress Controller'
+      ansible.builtin.shell:
+      cmd: |
+        set -o pipefail
+        helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
+      executable: /bin/bash
+      changed_when: false
+      become: false
 
     - name: 'Output the join command to use in the following tasks to join nodes to the cluster'
       ansible.builtin.shell:
@@ -199,36 +225,36 @@
         executable: /bin/bash
       changed_when: false
 
-- name: 'Beginning installation of Kubernetes Dashboard'
-  hosts: c1-cp1
-  become: false
-  gather_facts: true
-  remote_user: ubuntu
+# - name: 'Beginning installation of Kubernetes Dashboard'
+#   hosts: c1-cp1
+#   become: false
+#   gather_facts: true
+#   remote_user: ubuntu
 
-  vars_files:
-    - common_vars.yml
+#   vars_files:
+#     - common_vars.yml
 
-  vars:
-    ansible_python_interpreter: '/usr/bin/python3'
+#   vars:
+#     ansible_python_interpreter: '/usr/bin/python3'
 
-  environment:
-    ANSIBLE_HOST_KEY_CHECKING: false
+#   environment:
+#     ANSIBLE_HOST_KEY_CHECKING: false
   
-  pre_tasks:
-    - ansible.builtin.stat:
-        path: "/var/tmp/.kd"
-      register: _file_exist
+#   pre_tasks:
+#     - ansible.builtin.stat:
+#         path: "/var/tmp/.kd"
+#       register: _file_exist
   
-  roles:
-    - role: install-dashboard
-      when: _file_exist.stat.exists == false
+#   roles:
+#     - role: install-dashboard
+#       when: _file_exist.stat.exists == false
   
-  post_tasks:
-    - ansible.builtin.copy:
-        content: "complete"
-        dest: "/var/tmp/.kd"
-        force: true
-      become: true
+#   post_tasks:
+#     - ansible.builtin.copy:
+#         content: "complete"
+#         dest: "/var/tmp/.kd"
+#         force: true
+#       become: true
 
     # - ansible.builtin.pause:
     #     prompt: "Do you wish to install ElasticSearch into the Kubernetes cluster? (Y/N)"
