@@ -60,9 +60,17 @@
       ansible.aws.elb_application_lb_info:
       register: _elb_results
 
+    - name: 'Make local .kube directory'
+      ansible.builtin.file:
+        state: directory
+        dest: ~/.kube
+
     - name: 'Get kubeconfig'
-
-
+      ansible.builtin.fetch:
+        src: '/home/ubuntu/.kube/config'
+        dest: '~/.kube/config'
+      delegate_to: c1-cp1
+      become: false
     
 - hosts: c1-cp1
   become: true

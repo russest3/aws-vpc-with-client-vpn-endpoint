@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb
+  labels:
+    Resource: Load Balancer
+spec:
+  selector:
+    app: my-app # This selects pods with the label "app: my-app"
+  ports:
+    - protocol: TCP
+      port: 80       # The port the load balancer exposes
+      targetPort: 8080 # The port on the pod that the service directs traffic to
+  type: LoadBalancer
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-app-service
+            port:
+              number: 80
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-pod
+  labels:
+    app: my-app
+spec:
+  containers:
+  - name: my-app-container
+    image: my-app-image
+    ports:
+    - containerPort: 8080
+    readinessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 5

@@ -1,7 +1,9 @@
-# Use a Kubernetes Ingress Controller instead of an ALB
-# Pod must have IAM permissions to create ALB
+# Setup and use tags to create a cost allocation report using Cost Explorer
 
 # from aws_cdk.aws_cloudformation import CfnStackPolicy
+
+# In order to use Tags:
+import aws_cdk as cdk
 
 from aws_cdk import (
     aws_cloudformation as cfn,
@@ -110,16 +112,21 @@ class WorkspaceStack(Stack):
             "chown ubuntu:ubuntu /home/ubuntu/.kube",
             "cp /etc/kubernetes/admin.conf /home/ubuntu/.kube/config",
             "chown ubuntu:ubuntu /home/ubuntu/.kube/config",
-            "sudo su - ubuntu",
-            "cd /home/ubuntu",
-            "wget https://raw.githubusercontent.com/russest3/aws-vpc-with-client-vpn-endpoint/refs/heads/main/workspace/workspace/kube-flannel.yml",
-            "kubectl apply -f /home/ubuntu/kube-flannel.yml",
-            "sleep 30",
+            # "sudo su - ubuntu",
+            # "cd /home/ubuntu",
+            # "helm repo update",
+            # "wget https://raw.githubusercontent.com/russest3/aws-vpc-with-client-vpn-endpoint/refs/heads/main/workspace/workspace/kube-flannel.yml",
+            # "kubectl apply -f /home/ubuntu/kube-flannel.yml",
             "wget https://get.helm.sh/helm-v3.15.3-linux-amd64.tar.gz",
             "tar -xvzf helm-v3.15.3-linux-amd64.tar.gz",
-            "cp linux-amd64/helm /usr/bin/helm",            
+            "cp linux-amd64/helm /usr/bin/helm",
+            "sudo su - ubuntu",
+            "helm repo add eks https://aws.github.io/eks-charts",
+            "helm repo update",
+            "helm upgrade --install aws-vpc-cni eks/aws-vpc-cni --namespace kube-system --set enableNetworkPolicy=true",   
             "kubeadm token create --print-join-command",
-            "wget https://raw.githubusercontent.com/russest3/aws-vpc-with-client-vpn-endpoint/refs/heads/main/workspace/workspace/lb.yml"
+            "wget https://raw.githubusercontent.com/russest3/aws-vpc-with-client-vpn-endpoint/refs/heads/main/workspace/workspace/ingress.yml"
+            "kubectl apply -f ingress.yml",
         )
 
         c1_cp1 = ec2.Instance(self, "ControlNode",
@@ -133,6 +140,8 @@ class WorkspaceStack(Stack):
             user_data=c1_cp1_user_data,
             user_data_causes_replacement=True,
         )
+
+        cdk.Tags.of(c1_cp1).add("Resource", "EC2 Instance")
 
         c1_node1_user_data = ec2.UserData.for_linux()
         c1_node1_user_data.add_commands(
@@ -153,6 +162,8 @@ class WorkspaceStack(Stack):
             key_pair=keyPair,
         )
 
+        cdk.Tags.of(c1_node1).add("Resource", "EC2 Instance")
+
         c1_node2_user_data = ec2.UserData.for_linux()
         c1_node2_user_data.add_commands(
             "hostname c1-node2",
@@ -172,6 +183,8 @@ class WorkspaceStack(Stack):
             key_pair=keyPair,
         )
 
+        cdk.Tags.of(c1_node2).add("Resource", "EC2 Instance")
+
         c1_node3_user_data = ec2.UserData.for_linux()
         c1_node3_user_data.add_commands(
             "hostname c1-node3",
@@ -190,6 +203,8 @@ class WorkspaceStack(Stack):
             user_data_causes_replacement=True,
             key_pair=keyPair,
         )
+
+        cdk.Tags.of(c1_node3).add("Resource", "EC2 Instance")
 
         log_group = logs.LogGroup(self, "ClientVPNlogGroup",
             log_group_name="ClientVPNlogGroup",
@@ -264,6 +279,8 @@ class WorkspaceStack(Stack):
             dns_servers=["8.8.8.8", "8.8.4.4"],
             security_group_ids=[vpn_sg.security_group_id],
         )
+
+        cdk.Tags.of(client_vpn_endpoint).add("Resource", "VPN")
 
         ec2.CfnClientVpnTargetNetworkAssociation(self, "ClientVpnAssociation",
             client_vpn_endpoint_id=client_vpn_endpoint.ref,
