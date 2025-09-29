@@ -1,5 +1,14 @@
 # Build out a Kubernetes Cluster in an AWS VPC with Client VPN Endpoint using Cloud Development Kit!
 
+## To Do: (different branch)
+##   - Register EC2 instances with EKS and manage the node in EKS!
+##   - Use Spot Instances
+##   - Use the Amazon EKS Optimized AMI instead of Ubuntu
+##     aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.31/amazon-linux-2023/x86_64/standard/recommended/image_id \
+    --region us-east-2 --query "Parameter.Value" --output text
+## ami-011b1a624adc9b86d
+## Use Managed Node Groups
+
 ## Architecture
 
 ![](images/aws-vpc.drawio.png)
