@@ -4,10 +4,16 @@
 ##   - Register EC2 instances with EKS and manage the node in EKS!
 ##   - Use Spot Instances
 ##   - Use the Amazon EKS Optimized AMI instead of Ubuntu
-##     aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.31/amazon-linux-2023/x86_64/standard/recommended/image_id \
-    --region us-east-2 --query "Parameter.Value" --output text
-## ami-011b1a624adc9b86d
-## Use Managed Node Groups
+## ami-0001e312b82212f65
+## Use Managed Node
+
+## Instances Have:
+## Containerd, Kubelet, that's it # This sucks use yours instead, maybe install ECS Agents?
+
+## Create EKS Cluster, Create a Node Group, Launch Worker Nodes, Update Kubeconfig
+
+# To update kubectl run:
+# aws eks update-kubeconfig --name custom-eks-cluster
 
 ## Architecture
 
