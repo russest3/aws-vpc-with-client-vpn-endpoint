@@ -1,58 +1,49 @@
+Should be included in AMI:
+# add-apt-repository -y ppa:deadsnakes/ppa
+# apt install -y python3.10 python3-pip python3-apt python3-venv containerd apt-transport-https ca-certificates curl gpg net-tools
+# apt update -y
+# apt upgrade -y
+# wget https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb
+# dpkg -i -E ./amazon-cloudwatch-agent.deb
+# cat << 'END_OF_FILE' > /opt/aws/amazon-cloudwatch-agent/bin/config.json
+# {
+#   "agent": {
+#     "run_as_user": "cwagent"
+#   },
+#   "metrics": {
+#     "metrics_collected": {
+#       "procstat": [
+#         {
+#           "pid_file": "/var/run/sshd.pid",
+#           "measurement": [
+#             "cpu_usage",
+#             "memory_rss"
+#           ],
+#           "metrics_collection_interval": 60
+#         }
+#       ]
+#     }
+#   }
+# }
+# END_OF_FILE
+# /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json -s
+# sed -i 's/^#\s*PasswordAuthentication.*$/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# sed -i 's/^KbdInteractiveAuthentication.*$/#KbdInteractiveAuthentication no/' /etc/ssh/sshd_config
+# systemctl restart ssh
+# echo 'overlay' > /etc/modules-load.d/k8s.conf
+# echo 'br_netfilter' >> /etc/modules-load.d/k8s.conf
+# modprobe overlay
+# modprobe br_netfilter
+# echo 'net.bridge.bridge-nf-call-iptables=1' | tee -a /etc/sysctl.conf
+# echo 'net.bridge.bridge-nf-call-ip6tables=1' | tee -a /etc/sysctl.conf
+# sed -i 's/^#net.ipv4.ip_forward.*$/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+# sysctl -p
+# mkdir /etc/containerd
+# containerd config default | tee /etc/containerd/config.toml
+# sed -i 's/            SystemdCgroup = false/            SystemdCgroup = true/' /etc/containerd/config.toml
+# curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+# echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
+# apt update -y
+# apt install -y kubelet kubeadm kubectl
+# apt-mark hold kubelet kubeadm kubectl containerd
 
-# Welcome to your CDK Python project!
-
-This is a blank project for CDK development with Python.
-
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
-
-To manually create a virtualenv on MacOS and Linux:
-
-```
-$ python3 -m venv .venv
-```
-
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
-
-```
-$ source .venv/bin/activate
-```
-
-If you are a Windows platform, you would activate the virtualenv like this:
-
-```
-% .venv\Scripts\activate.bat
-```
-
-Once the virtualenv is activated, you can install the required dependencies.
-
-```
-$ pip install -r requirements.txt
-```
-
-At this point you can now synthesize the CloudFormation template for this code.
-
-```
-$ cdk synth
-```
-
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
-
-## Useful commands
-
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
-
-Enjoy!
